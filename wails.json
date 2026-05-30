@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Student-Grade-Management-System",
+  "outputfilename": "Student-Grade-Management-System",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Microft0629",
+    "email": "2439062600@qq.com"
+  }
+}
