@@ -1,9 +1,11 @@
 # Wails
 build/bin
+frontend/package.json.md5
 
 # Node
 node_modules
 frontend/dist
+frontend/package-lock.json
 
 # Go
 *.exe
@@ -37,6 +39,9 @@ database/
 export/
 backup/
 data/error.log
+
+# Claude Code
+.claude/
 
 # 环境配置
 .env
