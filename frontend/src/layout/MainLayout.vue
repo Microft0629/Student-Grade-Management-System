@@ -2,11 +2,46 @@
 <script setup>
     import { useRouter, useRoute } from 'vue-router'
     import { useAuthStore } from '../store/auth'
-    import { computed } from 'vue'
+    import { computed, onMounted } from 'vue'
+    import { WindowGetSize, WindowSetSize, WindowGetPosition, WindowSetPosition } from '../../wailsjs/runtime/runtime'
 
     const router = useRouter()
     const route = useRoute()
     const authStore = useAuthStore()
+
+    // 窗口大小记忆
+    let saveTimer = null
+    function saveWindowState() {
+        WindowGetSize().then(size => {
+            localStorage.setItem('win_w', size.w)
+            localStorage.setItem('win_h', size.h)
+        })
+        WindowGetPosition().then(pos => {
+            localStorage.setItem('win_x', pos.x)
+            localStorage.setItem('win_y', pos.y)
+        })
+    }
+    function restoreWindowState() {
+        const w = parseInt(localStorage.getItem('win_w')) || 1024
+        const h = parseInt(localStorage.getItem('win_h')) || 768
+        const x = parseInt(localStorage.getItem('win_x'))
+        const y = parseInt(localStorage.getItem('win_y'))
+        if (w > 0 && h > 0) {
+            WindowSetSize(w, h)
+        }
+        if (!isNaN(x) && !isNaN(y)) {
+            WindowSetPosition(x, y)
+        }
+    }
+
+    onMounted(() => {
+        restoreWindowState()
+        // 监听窗口大小变化，延迟保存避免频繁写入
+        window.addEventListener('resize', () => {
+            clearTimeout(saveTimer)
+            saveTimer = setTimeout(saveWindowState, 500)
+        })
+    })
 
     const menuItems = computed(() => {
         const items = [

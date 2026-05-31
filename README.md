@@ -68,6 +68,8 @@
 - Node.js 18+
 - Wails CLI（`go install github.com/wailsapp/wails/v2/cmd/wails@latest`）
 
+- 窗口大小和位置自动记忆，下次启动恢复
+
 ### 运行开发模式
 ```bash
 wails dev
