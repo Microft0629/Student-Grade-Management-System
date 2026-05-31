@@ -22,5 +22,19 @@ func (a *AuthAPI) Login(
 		Password: password,
 	}
 
-	return service.Login(req)
+	user, err := service.Login(req)
+	if err != nil {
+		return nil, err
+	}
+	service.SetCurrentUser(user)
+	return user, nil
+}
+
+// GetCurrentUserRole 获取当前登录用户的角色
+func (a *AuthAPI) GetCurrentUserRole() string {
+	u := service.GetCurrentUser()
+	if u == nil {
+		return ""
+	}
+	return u.Role
 }

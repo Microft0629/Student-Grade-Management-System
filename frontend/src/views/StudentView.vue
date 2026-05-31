@@ -5,6 +5,11 @@ import {
   CreateStudent, GetAllStudents, DeleteStudent,
   SearchStudents, GetStudentsByPage,
 } from '../../wailsjs/go/api/StudentAPI'
+import { useNotify } from '../composables/useNotify'
+import { useAuthStore } from '../store/auth'
+
+const notify = useNotify()
+const authStore = useAuthStore()
 
 const students = ref([])
 const keyword = ref('')
@@ -29,25 +34,29 @@ async function loadStudents() {
 }
 
 async function handleCreate() {
-  if (!form.value.StudentID || !form.value.Name) {
-    alert('学号和姓名不能为空')
-    return
-  }
+  if (!form.value.StudentID) { await notify.info('请输入学号'); return }
+  if (!form.value.Name) { await notify.info('请输入姓名'); return }
+  if (!form.value.Gender) { await notify.info('请选择性别'); return }
+  if (!form.value.ClassName) { await notify.info('请输入班级'); return }
+  if (!form.value.Major) { await notify.info('请输入专业'); return }
   try {
     await CreateStudent(form.value)
     form.value = { StudentID: '', Name: '', Gender: '', ClassName: '', Major: '' }
     showForm.value = false
     await loadStudents()
-    alert('新增成功')
+    await notify.success('新增成功')
   } catch (error) {
-    alert(error)
+    await notify.error(String(error))
   }
 }
 
 async function handleDelete(id) {
-  if (!confirm('确认删除该学生吗？关联成绩也会一并删除。')) return
-  await DeleteStudent(id)
-  await loadStudents()
+  if (!await notify.confirm('确认删除该学生吗？关联成绩也会一并删除。')) return
+  try {
+    await DeleteStudent(id)
+    await loadStudents()
+    await notify.success('删除成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 async function handleSearch() {
@@ -80,7 +89,7 @@ onMounted(() => { loadStudents() })
         <input v-model="keyword" placeholder="搜索学生姓名" @keyup.enter="handleSearch" />
         <button class="btn-primary" @click="handleSearch">搜索</button>
         <button class="btn-default" @click="handleReset">重置</button>
-        <button class="btn-success" @click="showForm = !showForm">
+        <button v-if="authStore.isAdmin()" class="btn-success" @click="showForm = !showForm">
           {{ showForm ? '收起' : '+ 新增学生' }}
         </button>
       </div>
@@ -101,23 +110,22 @@ onMounted(() => { loadStudents() })
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th><th>学号</th><th>姓名</th><th>性别</th><th>班级</th><th>专业</th><th>操作</th>
+            <th>学号</th><th>姓名</th><th>性别</th><th>班级</th><th>专业</th><th v-if="authStore.isAdmin()">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="s in students" :key="s.ID">
-            <td>{{ s.ID }}</td>
             <td>{{ s.StudentID }}</td>
             <td>{{ s.Name }}</td>
             <td>{{ s.Gender }}</td>
             <td>{{ s.ClassName }}</td>
             <td>{{ s.Major }}</td>
-            <td>
+            <td v-if="authStore.isAdmin()">
               <button class="btn-danger btn-sm" @click="handleDelete(s.ID)">删除</button>
             </td>
           </tr>
           <tr v-if="students.length === 0">
-            <td colspan="7" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
+            <td :colspan="authStore.isAdmin() ? 6 : 5" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
           </tr>
         </tbody>
       </table>

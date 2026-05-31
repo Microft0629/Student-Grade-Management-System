@@ -9,6 +9,7 @@ import StatisticsView from '../views/StatisticsView.vue'
 import GpaView from '../views/GpaView.vue'
 import DataManagementView from '../views/DataManagementView.vue'
 import OperationLogView from '../views/OperationLogView.vue'
+import UserManagementView from '../views/UserManagementView.vue'
 import { useAuthStore } from '../store/auth'
 
 const routes = [
@@ -28,6 +29,7 @@ const routes = [
             { path: 'gpa',        component: GpaView },
             { path: 'datamgmt',   component: DataManagementView },
             { path: 'logs',       component: OperationLogView },
+            { path: 'users',      component: UserManagementView },
         ],
     },
 ]
@@ -42,6 +44,12 @@ router.beforeEach((to, from, next) => {
     authStore.loadUser()
     if (to.path.startsWith('/main') && !authStore.isLogin) {
         next('/')
+        return
+    }
+    // 管理员专属路由：操作日志、用户管理
+    const adminRoutes = ['/main/logs', '/main/users']
+    if (adminRoutes.includes(to.path) && !authStore.isAdmin()) {
+        next('/main/dashboard')
         return
     }
     next()

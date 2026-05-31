@@ -1,12 +1,31 @@
 <!-- 成绩统计页面 -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   GetStudentStatistics, GetStudentRanking,
 } from '../../wailsjs/go/api/StatisticsAPI'
 import { GetAllCourses } from '../../wailsjs/go/api/CourseAPI'
 import { GetAllStudents } from '../../wailsjs/go/api/StudentAPI'
 import { ExportCourseStats, ExportStudentStats } from '../../wailsjs/go/api/ExcelAPI'
+import { useNotify } from '../composables/useNotify'
+import SearchableSelect from '../components/SearchableSelect.vue'
+
+const notify = useNotify()
+
+// 课程选项：支持按课程名、课程代码搜索
+const courseOptions = computed(() => courses.value.map(c => ({
+  value: c.ID,
+  label: c.CourseName + ' · ' + c.Term,
+  searchText: c.CourseName + ' ' + c.CourseCode,
+  term: c.Term,
+})))
+
+// 学生选项：支持按姓名、学号搜索
+const studentOptions = computed(() => students.value.map(s => ({
+  value: s.ID,
+  label: s.Name + ' · ' + s.StudentID,
+  searchText: s.Name + ' ' + s.StudentID,
+})))
 
 const studentStats = ref([])
 const studentRankings = ref([])
@@ -30,22 +49,22 @@ async function loadData() {
 }
 
 async function handleExportCourse() {
-  if (exportCourseId.value === 0) { alert('请选择课程'); return }
+  if (exportCourseId.value === 0) { await notify.info('请选择课程'); return }
   courseExporting.value = true
   try {
     const path = await ExportCourseStats(exportCourseId.value)
-    alert('报表已导出：' + path)
-  } catch (error) { alert(error) }
+    await notify.success('报表已导出：' + path)
+  } catch (error) { await notify.error(String(error)) }
   finally { courseExporting.value = false }
 }
 
 async function handleExportStudent() {
-  if (exportStudentId.value === 0) { alert('请选择学生'); return }
+  if (exportStudentId.value === 0) { await notify.info('请选择学生'); return }
   studentExporting.value = true
   try {
     const path = await ExportStudentStats(exportStudentId.value)
-    alert('报表已导出：' + path)
-  } catch (error) { alert(error) }
+    await notify.success('报表已导出：' + path)
+  } catch (error) { await notify.error(String(error)) }
   finally { studentExporting.value = false }
 }
 
@@ -66,19 +85,19 @@ onMounted(() => { loadData() })
       <div class="card-title">学生成绩统计</div>
       <table class="data-table">
         <thead>
-          <tr><th>学生</th><th>平均分</th><th>GPA</th><th>总学分</th><th>课程数</th></tr>
+          <tr><th>学生</th><th class="col-center">平均分</th><th class="col-center">GPA</th><th class="col-center">总学分</th><th class="col-center">课程数</th></tr>
         </thead>
         <tbody>
           <tr v-for="item in studentStats" :key="item.StudentName">
             <td><strong>{{ item.StudentName }}</strong></td>
-            <td>{{ item.AverageScore?.toFixed(1) }}</td>
-            <td>
+            <td class="col-center">{{ item.AverageScore?.toFixed(1) }}</td>
+            <td class="col-center">
               <span class="tag" :class="item.GPA >= 3.0 ? 'tag-blue' : item.GPA >= 2.0 ? 'tag-orange' : 'tag-red'">
                 {{ item.GPA?.toFixed(2) }}
               </span>
             </td>
-            <td>{{ item.TotalCredits?.toFixed(1) }}</td>
-            <td>{{ item.CourseCount }}</td>
+            <td class="col-center">{{ item.TotalCredits?.toFixed(1) }}</td>
+            <td class="col-center">{{ item.CourseCount }}</td>
           </tr>
           <tr v-if="studentStats.length === 0">
             <td colspan="5" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
@@ -92,11 +111,11 @@ onMounted(() => { loadData() })
       <div class="card-title">学生综合排名（按平均绩点降序）</div>
       <table class="data-table">
         <thead>
-          <tr><th>排名</th><th>学号</th><th>姓名</th><th>总分</th><th>平均分</th><th>绩点</th><th>课程数</th></tr>
+          <tr><th class="col-center">排名</th><th>学号</th><th>姓名</th><th class="col-center">总分</th><th class="col-center">平均分</th><th class="col-center">绩点</th><th class="col-center">课程数</th></tr>
         </thead>
         <tbody>
           <tr v-for="r in studentRankings" :key="r.StudentID">
-            <td>
+            <td class="col-center">
               <span v-if="r.Rank === 1" style="font-size:18px;">🥇</span>
               <span v-else-if="r.Rank === 2" style="font-size:18px;">🥈</span>
               <span v-else-if="r.Rank === 3" style="font-size:18px;">🥉</span>
@@ -104,10 +123,10 @@ onMounted(() => { loadData() })
             </td>
             <td>{{ r.StudentID }}</td>
             <td><strong>{{ r.StudentName }}</strong></td>
-            <td>{{ r.TotalScore?.toFixed(1) }}</td>
-            <td>{{ r.AverageScore?.toFixed(1) }}</td>
-            <td><span class="tag tag-blue">{{ r.GPA?.toFixed(2) }}</span></td>
-            <td>{{ r.CourseCount }}</td>
+            <td class="col-center">{{ r.TotalScore?.toFixed(1) }}</td>
+            <td class="col-center">{{ r.AverageScore?.toFixed(1) }}</td>
+            <td class="col-center"><span class="tag tag-blue">{{ r.GPA?.toFixed(2) }}</span></td>
+            <td class="col-center">{{ r.CourseCount }}</td>
           </tr>
           <tr v-if="studentRankings.length === 0">
             <td colspan="7" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
@@ -122,13 +141,8 @@ onMounted(() => { loadData() })
       <p style="color:#888;font-size:13px;margin-bottom:20px;">
         选择一门课程，导出包含平均分、及格率、分数段分布的 Excel 统计报表。
       </p>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <select v-model.number="exportCourseId" style="flex:1;max-width:480px;">
-          <option value="0">请选择要统计的课程</option>
-          <option v-for="c in courses" :key="c.ID" :value="c.ID">
-            {{ c.CourseName }} · {{ c.Term }} · {{ c.Teacher || '未指定教师' }}
-          </option>
-        </select>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <SearchableSelect v-model="exportCourseId" :options="courseOptions" placeholder="请选择要统计的课程（可输入关键词搜索）" />
         <button class="btn-primary" :disabled="courseExporting" @click="handleExportCourse" style="height:38px;min-width:120px;">
           {{ courseExporting ? '导出中...' : '导出 Excel' }}
         </button>
@@ -141,13 +155,8 @@ onMounted(() => { loadData() })
       <p style="color:#888;font-size:13px;margin-bottom:20px;">
         选择一名学生，导出包含各科成绩明细、总分、平均绩点及排名的 Excel 统计报表。
       </p>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <select v-model.number="exportStudentId" style="flex:1;max-width:480px;">
-          <option value="0">请选择要统计的学生</option>
-          <option v-for="s in students" :key="s.ID" :value="s.ID">
-            {{ s.Name }} · {{ s.StudentID }} · {{ s.ClassName }}
-          </option>
-        </select>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <SearchableSelect v-model="exportStudentId" :options="studentOptions" placeholder="请选择要统计的学生（可输入学号或姓名搜索）" />
         <button class="btn-primary" :disabled="studentExporting" @click="handleExportStudent" style="height:38px;min-width:120px;">
           {{ studentExporting ? '导出中...' : '导出 Excel' }}
         </button>

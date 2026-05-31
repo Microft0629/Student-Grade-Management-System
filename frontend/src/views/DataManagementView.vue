@@ -3,6 +3,9 @@
 import { ref, onMounted } from 'vue'
 import { BackupByTerm, BackupByCourse, ListBackups, RestoreFromBackup } from '../../wailsjs/go/api/BackupAPI'
 import { GetAllCourses } from '../../wailsjs/go/api/CourseAPI'
+import { useNotify } from '../composables/useNotify'
+
+const notify = useNotify()
 
 const courses = ref([])
 const backups = ref([])
@@ -16,32 +19,34 @@ async function loadBackups() {
 }
 
 async function handleBackupByTerm() {
-  if (!termForBackup.value) { alert('请选择一个学期'); return }
+  if (!termForBackup.value) { await notify.info('请选择一个学期'); return }
   try {
     const dir = await BackupByTerm(termForBackup.value)
     backupMsg.value = '备份成功：' + dir
     await loadBackups()
-  } catch (error) { alert(error) }
+    await notify.success('备份成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 async function handleBackupByCourse() {
   if (!courseForBackup.value.Term || !courseForBackup.value.CourseCode) {
-    alert('请选择学期和课程'); return
+    await notify.info('请选择学期和课程'); return
   }
   try {
     const dir = await BackupByCourse(courseForBackup.value.Term, courseForBackup.value.CourseCode)
     backupMsg.value = '备份成功：' + dir
     await loadBackups()
-  } catch (error) { alert(error) }
+    await notify.success('备份成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 async function handleRestore(backupName) {
-  if (!confirm(`确认从备份 [${backupName}] 恢复数据？当前数据将被覆盖。`)) return
+  if (!await notify.confirm(`确认从备份 [${backupName}] 恢复数据？当前数据将被覆盖。`)) return
   try {
     await RestoreFromBackup(backupName)
-    alert('恢复成功，数据已重新加载')
     backupMsg.value = '已从备份恢复：' + backupName
-  } catch (error) { alert(error) }
+    await notify.success('恢复成功，数据已重新加载')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 const terms = ['2024-2025-1', '2024-2025-2', '2025-2026-1', '2025-2026-2']

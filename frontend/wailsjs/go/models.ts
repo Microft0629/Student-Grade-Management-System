@@ -7,6 +7,7 @@ export namespace model {
 	    Term: string;
 	    Credit: number;
 	    Teacher: string;
+	    CreatorName: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Course(source);
@@ -20,6 +21,7 @@ export namespace model {
 	        this.Term = source["Term"];
 	        this.Credit = source["Credit"];
 	        this.Teacher = source["Teacher"];
+	        this.CreatorName = source["CreatorName"];
 	    }
 	}
 	export class CourseStatistics {
@@ -115,6 +117,7 @@ export namespace model {
 	    CourseID: number;
 	    Score: number;
 	    GradePoint: number;
+	    CreatorName: string;
 	    Student: Student;
 	    Course: Course;
 	
@@ -129,6 +132,7 @@ export namespace model {
 	        this.CourseID = source["CourseID"];
 	        this.Score = source["Score"];
 	        this.GradePoint = source["GradePoint"];
+	        this.CreatorName = source["CreatorName"];
 	        this.Student = this.convertValues(source["Student"], Student);
 	        this.Course = this.convertValues(source["Course"], Course);
 	    }
@@ -155,6 +159,7 @@ export namespace model {
 	    ID: number;
 	    // Go type: time
 	    Time: any;
+	    Operator: string;
 	    Action: string;
 	    Student: string;
 	    StudentID: string;
@@ -172,6 +177,7 @@ export namespace model {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ID = source["ID"];
 	        this.Time = this.convertValues(source["Time"], null);
+	        this.Operator = source["Operator"];
 	        this.Action = source["Action"];
 	        this.Student = source["Student"];
 	        this.StudentID = source["StudentID"];

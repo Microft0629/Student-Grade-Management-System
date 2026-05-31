@@ -52,17 +52,12 @@ func (g *GradeAPI) BatchImportGrades(grades []model.Grade) (int, []string, error
 	return service.BatchImportGrades(grades)
 }
 
-// BatchAdjustScores 按分数段批量加减分调整
-func (g *GradeAPI) BatchAdjustScores(minScore float64, maxScore float64, delta float64) (*service.BatchAdjustResult, error) {
-	return service.BatchAdjustScores(minScore, maxScore, delta)
+// BatchAdjustScores 按课程+分数段批量加减分调整
+func (g *GradeAPI) BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*service.BatchAdjustResult, error) {
+	return service.BatchAdjustScores(courseID, minScore, maxScore, delta)
 }
 
 // AggregateGrades 跨课程/跨学期成绩汇总
 func (g *GradeAPI) AggregateGrades(term string, courseKeyword string) ([]service.AggregatedGrade, error) {
 	return service.AggregateGrades(term, courseKeyword)
-}
-
-// ExportTranscript 导出标准化成绩单
-func (g *GradeAPI) ExportTranscript(term string) (string, error) {
-	return service.ExportTranscript(term)
 }

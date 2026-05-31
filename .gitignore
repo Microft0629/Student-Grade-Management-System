@@ -16,6 +16,7 @@ frontend/package-lock.json
 *.test
 *.out
 vendor/
+__debug_bin
 
 # IDE
 .idea/*
@@ -35,10 +36,11 @@ Desktop.ini
 # 数据库（运行时生成）
 database/
 
-# 运行时生成的数据
+# 运行时生成的目录与文件
 export/
 backup/
 data/error.log
+*.log
 
 # Claude Code
 .claude/

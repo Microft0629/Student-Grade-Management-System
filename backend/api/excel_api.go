@@ -35,6 +35,26 @@ func (e *ExcelAPI) ExportStudentStats(studentID uint) (string, error) {
 	return path, nil
 }
 
+// ExportTranscript 导出标准化成绩单 Excel 文件并打开，返回文件路径
+func (e *ExcelAPI) ExportTranscript(term string) (string, error) {
+	path, err := service.ExportTranscriptExcel(term)
+	if err != nil {
+		return "", err
+	}
+	openFile(path)
+	return path, nil
+}
+
+// ExportOperationLogs 导出操作日志 Excel 文件并打开，返回文件路径
+func (e *ExcelAPI) ExportOperationLogs() (string, error) {
+	path, err := service.ExportOperationLogsExcel()
+	if err != nil {
+		return "", err
+	}
+	openFile(path)
+	return path, nil
+}
+
 // openFile 使用系统默认程序打开文件
 func openFile(path string) {
 	var cmd *exec.Cmd

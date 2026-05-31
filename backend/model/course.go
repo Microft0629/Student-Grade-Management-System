@@ -2,10 +2,11 @@
 package model
 
 type Course struct {
-	ID         uint    `Gorm:"primaryKey"` // 主键
-	CourseCode string  `Gorm:"unique"`     // 课程代码
-	CourseName string  // 课程名称
-	Term       string  // 学期
-	Credit     float64 // 学分
-	Teacher    string  // 任课教师
+	ID          uint    `Gorm:"primaryKey"` // 主键
+	CourseCode  string  `Gorm:"unique"`     // 课程代码
+	CourseName  string  // 课程名称
+	Term        string  // 学期
+	Credit      float64 // 学分
+	Teacher     string  // 任课教师
+	CreatorName string  // 创建人用户名
 }

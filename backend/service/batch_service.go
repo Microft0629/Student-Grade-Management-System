@@ -16,13 +16,13 @@ type BatchAdjustResult struct {
 	Details       []string // 逐条详情
 }
 
-// BatchAdjustScores 按分数段对成绩进行批量加减分调整
-func BatchAdjustScores(minScore float64, maxScore float64, delta float64) (*BatchAdjustResult, error) {
+// BatchAdjustScores 按课程+分数段对成绩进行批量加减分调整
+func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*BatchAdjustResult, error) {
 	var grades []model.Grade
 	err := config.DB.
 		Preload("Student").
 		Preload("Course").
-		Where("score >= ? AND score <= ?", minScore, maxScore).
+		Where("course_id = ? AND score >= ? AND score <= ?", courseID, minScore, maxScore).
 		Find(&grades).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)

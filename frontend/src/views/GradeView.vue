@@ -3,10 +3,22 @@
 import { ref, onMounted, computed } from 'vue'
 import {
   CreateGrade, UpdateGrade, GetAllGrades, DeleteGrade, SearchGrades,
-  BatchImportGrades, BatchAdjustScores, AggregateGrades, ExportTranscript,
+  BatchImportGrades, BatchAdjustScores, AggregateGrades,
 } from '../../wailsjs/go/api/GradeAPI'
+import { ExportTranscript } from '../../wailsjs/go/api/ExcelAPI'
 import { GetAllStudents } from '../../wailsjs/go/api/StudentAPI'
 import { GetAllCourses } from '../../wailsjs/go/api/CourseAPI'
+import { useNotify } from '../composables/useNotify'
+import { useAuthStore } from '../store/auth'
+
+const notify = useNotify()
+const authStore = useAuthStore()
+
+// 当前用户是否能修改/删除该成绩
+function canModify(grade) {
+  if (authStore.isAdmin()) return true
+  return grade.CreatorName === authStore.user?.Username
+}
 
 const grades = ref([])
 const students = ref([])
@@ -26,7 +38,7 @@ const importText = ref('')
 const importResults = ref([])
 
 // 批量调整
-const batchForm = ref({ MinScore: 0, MaxScore: 100, Delta: 0 })
+const batchForm = ref({ CourseID: 0, MinScore: 0, MaxScore: 100, Delta: 0 })
 const batchResults = ref(null)
 
 // 成绩汇总
@@ -36,8 +48,6 @@ const aggData = ref([])
 
 // 成绩单
 const transcriptTerm = ref('')
-const transcriptText = ref('')
-const showTranscript = ref(false)
 
 const filteredCourses = computed(() => {
   if (!searchForm.value.Term) return courses.value
@@ -52,14 +62,14 @@ async function loadData() {
 
 // 录入/修改
 async function handleCreate() {
-  if (form.value.StudentID === 0) { alert('请选择学生'); return }
-  if (form.value.CourseID === 0) { alert('请选择课程'); return }
-  if (form.value.Score < 0 || form.value.Score > 100) { alert('成绩必须在0-100之间'); return }
+  if (form.value.StudentID === 0) { await notify.info('请选择学生'); return }
+  if (form.value.CourseID === 0) { await notify.info('请选择课程'); return }
+  if (form.value.Score < 0 || form.value.Score > 100) { await notify.info('成绩必须在0-100之间'); return }
   try {
     await CreateGrade(form.value)
     form.value = { StudentID: 0, CourseID: 0, Score: 0 }
     await loadData()
-  } catch (error) { alert(error) }
+  } catch (error) { await notify.error(String(error)) }
 }
 
 function openEdit(grade) {
@@ -67,19 +77,23 @@ function openEdit(grade) {
   editScore.value = grade.Score
 }
 async function handleUpdate() {
-  if (editScore.value < 0 || editScore.value > 100) { alert('成绩必须在0-100之间'); return }
+  if (editScore.value < 0 || editScore.value > 100) { await notify.info('成绩必须在0-100之间'); return }
   try {
     await UpdateGrade(editId.value, editScore.value)
     editId.value = 0
     await loadData()
-  } catch (error) { alert(error) }
+    await notify.success('修改成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 function cancelEdit() { editId.value = 0 }
 
 async function handleDelete(id) {
-  if (!confirm('确认删除该成绩记录吗？')) return
-  await DeleteGrade(id)
-  await loadData()
+  if (!await notify.confirm('确认删除该成绩记录吗？')) return
+  try {
+    await DeleteGrade(id)
+    await loadData()
+    await notify.success('删除成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 // 查询
@@ -97,42 +111,93 @@ async function handleReset() {
 
 // 批量导入
 async function handleBatchImport() {
-  if (!importText.value.trim()) { alert('请粘贴成绩数据'); return }
+  if (!importText.value.trim()) { await notify.info('请粘贴成绩数据'); return }
+  // 重新加载最新的学生和课程数据，避免因在其他页面新增后数据过期
+  await loadData()
   const lines = importText.value.trim().split('\n')
   const gradeList = []
-  for (const line of lines) {
-    const parts = line.split(/[,\t]/)
-    if (parts.length < 3) continue
-    const sid = students.value.find(s => s.StudentID === parts[0].trim())
-    const cid = courses.value.find(c => c.CourseCode === parts[1].trim())
-    if (!sid || !cid) continue
+  const parseErrors = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (!line) continue
+    const lineNum = i + 1
+
+    const parts = line.split(/[,\t ]+/)
+    if (parts.length < 3) {
+      parseErrors.push(`第${lineNum}行：格式错误，需要"学号,课程代码,分数"（用逗号/Tab/空格分隔）`)
+      continue
+    }
+
+    const studentID = parts[0].trim()
+    const courseCode = parts[1].trim()
+    const scoreStr = parts[2].trim()
+
+    const sid = students.value.find(s => s.StudentID === studentID)
+    if (!sid) {
+      parseErrors.push(`第${lineNum}行：学号"${studentID}"不存在`)
+      continue
+    }
+
+    const cid = courses.value.find(c => c.CourseCode === courseCode)
+    if (!cid) {
+      parseErrors.push(`第${lineNum}行：课程代码"${courseCode}"不存在`)
+      continue
+    }
+
+    const score = parseFloat(scoreStr)
+    if (isNaN(score)) {
+      parseErrors.push(`第${lineNum}行：分数"${scoreStr}"不是有效数字`)
+      continue
+    }
+    if (score < 0 || score > 100) {
+      parseErrors.push(`第${lineNum}行：分数${score}不在0-100范围内`)
+      continue
+    }
+
     gradeList.push({
       StudentID: sid.ID,
       CourseID: cid.ID,
-      Score: parseFloat(parts[2]),
+      Score: score,
       GradePoint: 0,
       Student: sid,
       Course: cid,
     })
   }
-  if (gradeList.length === 0) { alert('没有解析到有效数据，请检查格式'); return }
+
+  const allResults = [...parseErrors]
+
+  if (gradeList.length === 0) {
+    importResults.value = allResults
+    await notify.error('没有解析到有效数据，详见下方错误列表')
+    return
+  }
+
   try {
     const [successCount, errors] = await BatchImportGrades(gradeList)
-    importResults.value = errors || []
+    allResults.push(`✓ 成功导入 ${successCount} 条`)
+    for (const e of errors || []) {
+      allResults.push('✗ ' + e)
+    }
+    importResults.value = allResults
     await loadData()
-    alert(`导入完成：成功 ${successCount} 条，失败 ${(errors || []).length} 条`)
-  } catch (error) { alert(error) }
+  } catch (error) {
+    await notify.error('导入失败: ' + String(error))
+    importResults.value = allResults
+  }
 }
 
 // 批量调整
 async function handleBatchAdjust() {
+  if (batchForm.value.CourseID === 0) { await notify.info('请选择课程'); return }
   const d = batchForm.value.Delta
-  if (d === 0) { alert('调整分值不能为0'); return }
-  if (!confirm(`确认将分数 [${batchForm.value.MinScore}, ${batchForm.value.MaxScore}] 范围的所有成绩 ${d > 0 ? '+' + d : d} 分？`)) return
+  if (d === 0) { await notify.info('调整分值不能为0'); return }
+  const course = courses.value.find(c => c.ID === batchForm.value.CourseID)
+  if (!await notify.confirm(`确认将课程"${course.CourseName}"中分数 [${batchForm.value.MinScore}, ${batchForm.value.MaxScore}] 范围的所有成绩 ${d > 0 ? '+' + d : d} 分？`)) return
   try {
-    batchResults.value = await BatchAdjustScores(batchForm.value.MinScore, batchForm.value.MaxScore, d)
+    batchResults.value = await BatchAdjustScores(batchForm.value.CourseID, batchForm.value.MinScore, batchForm.value.MaxScore, d)
     await loadData()
-  } catch (error) { alert(error) }
+  } catch (error) { await notify.error(String(error)) }
 }
 
 // 汇总
@@ -142,8 +207,10 @@ async function handleAggregate() {
 
 // 导出成绩单
 async function handleExport() {
-  transcriptText.value = await ExportTranscript(transcriptTerm.value)
-  showTranscript.value = true
+  try {
+    const path = await ExportTranscript(transcriptTerm.value)
+    await notify.success('成绩单已导出：' + path)
+  } catch (error) { await notify.error(String(error)) }
 }
 
 onMounted(() => { loadData() })
@@ -199,18 +266,17 @@ onMounted(() => { loadData() })
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th><th>学号</th><th>姓名</th><th>课程</th><th>学期</th><th>学分</th><th>分数</th><th>绩点</th><th>操作</th>
+              <th>学号</th><th>姓名</th><th>课程</th><th>学期</th><th class="col-center">学分</th><th class="col-center">分数</th><th class="col-center">绩点</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="g in grades" :key="g.ID">
-              <td>{{ g.ID }}</td>
               <td>{{ g.Student?.StudentID }}</td>
               <td>{{ g.Student?.Name }}</td>
               <td>{{ g.Course?.CourseName }}</td>
               <td><span class="tag tag-green">{{ g.Course?.Term }}</span></td>
-              <td>{{ g.Course?.Credit }}</td>
-              <td>
+              <td class="col-center">{{ g.Course?.Credit }}</td>
+              <td class="col-center">
                 <template v-if="editId === g.ID">
                   <input v-model.number="editScore" type="number" min="0" max="100" style="width:70px;" />
                   <button class="btn-primary btn-sm" @click="handleUpdate" style="margin-left:4px;">保存</button>
@@ -220,14 +286,14 @@ onMounted(() => { loadData() })
                   <span :class="g.Score >= 60 ? 'msg-success' : 'msg-error'" style="font-weight:600;">{{ g.Score }}</span>
                 </template>
               </td>
-              <td><span class="tag" :class="g.GradePoint >= 2.0 ? 'tag-blue' : 'tag-red'">{{ g.GradePoint?.toFixed(1) }}</span></td>
+              <td class="col-center"><span class="tag" :class="g.GradePoint >= 2.0 ? 'tag-blue' : 'tag-red'">{{ g.GradePoint?.toFixed(1) }}</span></td>
               <td>
-                <button class="btn-warning btn-sm" @click="openEdit(g)" v-if="editId !== g.ID">修改</button>
-                <button class="btn-danger btn-sm" @click="handleDelete(g.ID)" style="margin-left:4px;">删除</button>
+                <button v-if="editId !== g.ID && canModify(g)" class="btn-warning btn-sm" @click="openEdit(g)">修改</button>
+                <button v-if="canModify(g)" class="btn-danger btn-sm" @click="handleDelete(g.ID)" style="margin-left:4px;">删除</button>
               </td>
             </tr>
             <tr v-if="grades.length === 0">
-              <td colspan="9" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
+              <td colspan="8" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
             </tr>
           </tbody>
         </table>
@@ -237,7 +303,19 @@ onMounted(() => { loadData() })
     <!-- 批量导入 -->
     <div v-if="activeTab==='import'" class="card">
       <div class="card-title">批量导入成绩</div>
-      <p style="color:#888;font-size:13px;">每行一条，格式：<code>学号,课程代码,分数</code>（用逗号或Tab分隔）</p>
+      <p style="color:#888;font-size:13px;margin-bottom:8px;">
+        每行一条，格式：<code>学号,课程代码,分数</code>（用逗号、Tab 或空格分隔）
+      </p>
+      <div style="display:flex;gap:24px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <span style="font-size:12px;color:#999;">已有学号：</span>
+          <span v-for="s in students" :key="s.ID" class="tag tag-blue" style="margin:2px;">{{ s.StudentID }}</span>
+        </div>
+        <div style="flex:1;">
+          <span style="font-size:12px;color:#999;">已有课程代码：</span>
+          <span v-for="c in courses" :key="c.ID" class="tag tag-green" style="margin:2px;">{{ c.CourseCode }}</span>
+        </div>
+      </div>
       <textarea v-model="importText" rows="8"
         style="width:100%;font-family:monospace;font-size:13px;box-sizing:border-box;"
         placeholder="2024001,10871,87&#10;2024002,10871,92&#10;2024001,10872,78"></textarea>
@@ -246,14 +324,20 @@ onMounted(() => { loadData() })
       </div>
       <div v-if="importResults.length > 0" style="margin-top:16px;">
         <div class="card-title">导入结果</div>
-        <div v-for="(r, i) in importResults" :key="i" class="msg-error" style="font-size:13px;margin:4px 0;">{{ r }}</div>
+        <div v-for="(r, i) in importResults" :key="i"
+          :class="r.startsWith('✓') ? 'msg-success' : 'msg-error'"
+          style="font-size:13px;margin:4px 0;">{{ r }}</div>
       </div>
     </div>
 
     <!-- 批量调整 -->
     <div v-if="activeTab==='adjust'" class="card">
-      <div class="card-title">按分数段批量加减分</div>
+      <div class="card-title">按课程 + 分数段批量加减分</div>
       <div class="form-row">
+        <select v-model.number="batchForm.CourseID">
+          <option value="0">选择课程 *</option>
+          <option v-for="c in courses" :key="c.ID" :value="c.ID">{{ c.CourseName }}（{{ c.Term }}）</option>
+        </select>
         <span>分数范围：</span>
         <input v-model.number="batchForm.MinScore" type="number" placeholder="最低分" style="width:100px;" />
         <span>—</span>
@@ -281,12 +365,12 @@ onMounted(() => { loadData() })
       </div>
       <table v-if="aggData.length > 0" class="data-table" style="margin-top:16px;">
         <thead>
-          <tr><th>学号</th><th>姓名</th><th>课程</th><th>学期</th><th>学分</th><th>分数</th><th>绩点</th></tr>
+          <tr><th>学号</th><th>姓名</th><th>课程</th><th>学期</th><th class="col-center">学分</th><th class="col-center">分数</th><th class="col-center">绩点</th></tr>
         </thead>
         <tbody>
           <tr v-for="(a, i) in aggData" :key="i">
             <td>{{ a.StudentID }}</td><td>{{ a.StudentName }}</td><td>{{ a.CourseName }}</td>
-            <td>{{ a.Term }}</td><td>{{ a.Credit }}</td><td>{{ a.Score }}</td><td>{{ a.GradePoint?.toFixed(1) }}</td>
+            <td>{{ a.Term }}</td><td class="col-center">{{ a.Credit }}</td><td class="col-center">{{ a.Score }}</td><td class="col-center">{{ a.GradePoint?.toFixed(1) }}</td>
           </tr>
         </tbody>
       </table>
@@ -296,15 +380,15 @@ onMounted(() => { loadData() })
     <!-- 导出成绩单 -->
     <div v-if="activeTab==='transcript'" class="card">
       <div class="card-title">导出标准化成绩单</div>
+      <p style="color:#888;font-size:13px;margin-bottom:16px;">
+        导出包含学生详细信息、各科成绩及绩点汇总的标准 Excel 成绩单。
+      </p>
       <div class="form-row">
         <select v-model="transcriptTerm">
           <option value="">全部学期</option>
           <option v-for="t in [...new Set(courses.map(c=>c.Term))]" :key="t" :value="t">{{ t }}</option>
         </select>
-        <button class="btn-primary" @click="handleExport">生成成绩单</button>
-      </div>
-      <div v-if="showTranscript" style="margin-top:16px;">
-        <div class="report-text">{{ transcriptText }}</div>
+        <button class="btn-primary" @click="handleExport">导出 Excel</button>
       </div>
     </div>
   </div>

@@ -2,6 +2,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { CreateCourse, GetAllCourses, DeleteCourse, SearchCourses } from '../../wailsjs/go/api/CourseAPI'
+import { useNotify } from '../composables/useNotify'
+import { useAuthStore } from '../store/auth'
+
+const notify = useNotify()
+const authStore = useAuthStore()
+
+function canDelete(course) {
+  if (authStore.isAdmin()) return true
+  return course.CreatorName === authStore.user?.Username
+}
 
 const courses = ref([])
 const keyword = ref('')
@@ -14,23 +24,27 @@ async function loadCourses() {
 }
 
 async function handleCreate() {
-  if (!form.value.CourseCode) { alert('请输入课程代码'); return }
-  if (!form.value.CourseName) { alert('请输入课程名称'); return }
-  if (!form.value.Term) { alert('请选择学期'); return }
-  if (form.value.Credit <= 0) { alert('学分必须大于0'); return }
+  if (!form.value.CourseCode) { await notify.info('请输入课程代码'); return }
+  if (!form.value.CourseName) { await notify.info('请输入课程名称'); return }
+  if (!form.value.Term) { await notify.info('请选择学期'); return }
+  if (!form.value.Credit || form.value.Credit <= 0) { await notify.info('请输入有效的学分'); return }
+  if (!form.value.Teacher) { await notify.info('请输入任课教师'); return }
   try {
     await CreateCourse(form.value)
     form.value = { CourseCode: '', CourseName: '', Term: '', Credit: 0, Teacher: '' }
     showForm.value = false
     await loadCourses()
-    alert('新增成功')
-  } catch (error) { alert(error) }
+    await notify.success('新增成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 async function handleDelete(id) {
-  if (!confirm('确认删除该课程吗？关联成绩也会一并删除。')) return
-  await DeleteCourse(id)
-  await loadCourses()
+  if (!await notify.confirm('确认删除该课程吗？关联成绩也会一并删除。')) return
+  try {
+    await DeleteCourse(id)
+    await loadCourses()
+    await notify.success('删除成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 
 async function handleSearch() {
@@ -70,23 +84,22 @@ onMounted(() => { loadCourses() })
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th><th>课程代码</th><th>课程名称</th><th>学期</th><th>学分</th><th>教师</th><th>操作</th>
+            <th>课程代码</th><th>课程名称</th><th>学期</th><th class="col-center">学分</th><th>教师</th><th>操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in courses" :key="c.ID">
-            <td>{{ c.ID }}</td>
-            <td><span class="tag tag-blue">{{ c.CourseCode }}</span></td>
+            <td>{{ c.CourseCode }}</td>
             <td>{{ c.CourseName }}</td>
             <td>{{ c.Term }}</td>
-            <td>{{ c.Credit }}</td>
+            <td class="col-center">{{ c.Credit }}</td>
             <td>{{ c.Teacher }}</td>
             <td>
-              <button class="btn-danger btn-sm" @click="handleDelete(c.ID)">删除</button>
+              <button v-if="canDelete(c)" class="btn-danger btn-sm" @click="handleDelete(c.ID)">删除</button>
             </td>
           </tr>
           <tr v-if="courses.length === 0">
-            <td colspan="7" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
+            <td colspan="6" style="text-align:center;color:#999;padding:24px;">暂无数据</td>
           </tr>
         </tbody>
       </table>

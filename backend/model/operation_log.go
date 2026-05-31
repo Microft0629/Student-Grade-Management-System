@@ -7,6 +7,7 @@ import "time"
 type OperationLog struct {
 	ID        uint      `Gorm:"primaryKey"` // 主键
 	Time      time.Time // 操作时间
+	Operator  string    // 操作人
 	Action    string    // 操作类型：新增/修改/删除/批量调整/导入
 	Student   string    // 学生姓名
 	StudentID string    // 学号

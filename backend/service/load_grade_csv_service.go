@@ -41,10 +41,11 @@ func LoadGradesFromCSV() error {
 			}
 
 			grade := model.Grade{
-				StudentID:  student.ID,
-				CourseID:   course.ID,
-				Score:      row.Score,
-				GradePoint: utils.CalculateGradePoint(row.Score),
+				StudentID:   student.ID,
+				CourseID:    course.ID,
+				Score:       row.Score,
+				GradePoint:  utils.CalculateGradePoint(row.Score),
+				CreatorName: "admin",
 			}
 
 			if err := repository.CreateGrade(&grade); err != nil {

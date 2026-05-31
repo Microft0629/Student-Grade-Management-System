@@ -6,6 +6,14 @@ export function ExportCourseStats(arg1) {
   return window['go']['api']['ExcelAPI']['ExportCourseStats'](arg1);
 }
 
+export function ExportOperationLogs() {
+  return window['go']['api']['ExcelAPI']['ExportOperationLogs']();
+}
+
 export function ExportStudentStats(arg1) {
   return window['go']['api']['ExcelAPI']['ExportStudentStats'](arg1);
+}
+
+export function ExportTranscript(arg1) {
+  return window['go']['api']['ExcelAPI']['ExportTranscript'](arg1);
 }

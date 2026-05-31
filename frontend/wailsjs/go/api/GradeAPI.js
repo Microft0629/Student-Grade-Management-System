@@ -6,8 +6,8 @@ export function AggregateGrades(arg1, arg2) {
   return window['go']['api']['GradeAPI']['AggregateGrades'](arg1, arg2);
 }
 
-export function BatchAdjustScores(arg1, arg2, arg3) {
-  return window['go']['api']['GradeAPI']['BatchAdjustScores'](arg1, arg2, arg3);
+export function BatchAdjustScores(arg1, arg2, arg3, arg4) {
+  return window['go']['api']['GradeAPI']['BatchAdjustScores'](arg1, arg2, arg3, arg4);
 }
 
 export function BatchImportGrades(arg1) {
@@ -20,10 +20,6 @@ export function CreateGrade(arg1) {
 
 export function DeleteGrade(arg1) {
   return window['go']['api']['GradeAPI']['DeleteGrade'](arg1);
-}
-
-export function ExportTranscript(arg1) {
-  return window['go']['api']['GradeAPI']['ExportTranscript'](arg1);
 }
 
 export function GetAllGrades() {

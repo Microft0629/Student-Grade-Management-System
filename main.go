@@ -33,6 +33,7 @@ func main() {
 	backupAPI := api.NewBackupAPI()
 	logAPI := api.NewLogAPI()
 	excelAPI := api.NewExcelAPI()
+	userAPI := api.NewUserAPI()
 
 	err = wails.Run(&options.App{
 		Title:  "Student grade Management System",
@@ -53,6 +54,7 @@ func main() {
 			backupAPI,
 			logAPI,
 			excelAPI,
+			userAPI,
 		},
 	})
 

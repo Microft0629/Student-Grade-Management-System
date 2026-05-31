@@ -2,21 +2,28 @@
 <script setup>
     import { useRouter, useRoute } from 'vue-router'
     import { useAuthStore } from '../store/auth'
+    import { computed } from 'vue'
 
     const router = useRouter()
     const route = useRoute()
     const authStore = useAuthStore()
 
-    const menuItems = [
-        { path: '/main/dashboard',   label: '首页概览', icon: '📊' },
-        { path: '/main/students',     label: '学生管理', icon: '👤' },
-        { path: '/main/courses',      label: '课程管理', icon: '📚' },
-        { path: '/main/grades',       label: '成绩管理', icon: '📝' },
-        { path: '/main/statistics',   label: '统计分析', icon: '📈' },
-        { path: '/main/gpa',          label: '绩点规则', icon: '🎯' },
-        { path: '/main/datamgmt',     label: '数据管理', icon: '💾' },
-        { path: '/main/logs',         label: '操作日志', icon: '📋' },
-    ]
+    const menuItems = computed(() => {
+        const items = [
+            { path: '/main/dashboard',   label: '首页概览', icon: '📊' },
+            { path: '/main/students',     label: '学生管理', icon: '👤' },
+            { path: '/main/courses',      label: '课程管理', icon: '📚' },
+            { path: '/main/grades',       label: '成绩管理', icon: '📝' },
+            { path: '/main/statistics',   label: '统计分析', icon: '📈' },
+            { path: '/main/gpa',          label: '绩点规则', icon: '🎯' },
+            { path: '/main/datamgmt',     label: '数据管理', icon: '💾' },
+        ]
+        if (authStore.isAdmin()) {
+            items.push({ path: '/main/users',  label: '用户管理', icon: '⚙️' })
+            items.push({ path: '/main/logs',   label: '操作日志', icon: '📋' })
+        }
+        return items
+    })
 
     function isActive(path) {
         return route.path === path

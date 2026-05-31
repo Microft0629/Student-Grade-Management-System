@@ -6,6 +6,10 @@ import {
   GetOperationLogsByStudent, SearchOperationLogs,
   ReadErrorLogs,
 } from '../../wailsjs/go/api/LogAPI'
+import { ExportOperationLogs } from '../../wailsjs/go/api/ExcelAPI'
+import { useNotify } from '../composables/useNotify'
+
+const notify = useNotify()
 
 const logs = ref([])
 const errorLogs = ref([])
@@ -35,6 +39,13 @@ async function handleSearchByStudent() {
   if (!studentFilter.value) { await loadLogs(); return }
   logs.value = await GetOperationLogsByStudent(studentFilter.value)
 }
+async function handleExport() {
+  try {
+    const path = await ExportOperationLogs()
+    await notify.success('日志已导出：' + path)
+  } catch (error) { await notify.error(String(error)) }
+}
+
 function handleReset() {
   searchForm.value = { Action: '', StudentID: '', Course: '', Term: '', StartTime: '', EndTime: '' }
   loadLogs()
@@ -96,15 +107,18 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
 
       <!-- 日志列表 -->
       <div class="card">
-        <div class="card-title">操作记录（共 {{ logs.length }} 条，按时间倒序）</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="card-title" style="margin:0;padding:0;border:none;">操作记录（共 {{ logs.length }} 条，按时间倒序）</span>
+          <button class="btn-primary btn-sm" @click="handleExport">导出 Excel</button>
+        </div>
         <table class="data-table">
           <thead>
-            <tr><th>ID</th><th>时间</th><th>操作</th><th>学号</th><th>学生</th><th>课程</th><th>学期</th><th>旧分</th><th>新分</th><th>详情</th></tr>
+            <tr><th>时间</th><th>操作人</th><th>操作</th><th>学号</th><th>学生</th><th>课程</th><th>学期</th><th class="col-center">旧分</th><th class="col-center">新分</th><th>详情</th></tr>
           </thead>
           <tbody>
             <tr v-for="l in logs" :key="l.ID">
-              <td>{{ l.ID }}</td>
               <td style="font-size:12px;">{{ formatTime(l.Time) }}</td>
+              <td>{{ l.Operator }}</td>
               <td>
                 <span class="tag" :class="
                   l.Action==='新增'?'tag-green':
@@ -117,8 +131,8 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
               <td>{{ l.Student }}</td>
               <td>{{ l.Course }}</td>
               <td>{{ l.Term }}</td>
-              <td>{{ l.OldScore }}</td>
-              <td>{{ l.NewScore }}</td>
+              <td class="col-center">{{ l.OldScore }}</td>
+              <td class="col-center">{{ l.NewScore }}</td>
               <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">{{ l.Detail }}</td>
             </tr>
             <tr v-if="logs.length === 0">

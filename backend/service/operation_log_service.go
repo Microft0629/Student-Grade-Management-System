@@ -8,9 +8,12 @@ import (
 	"time"
 )
 
-// LogOperation 记录一条成绩修改操作日志
+// LogOperation 记录一条成绩修改操作日志，自动填入当前操作人
 func LogOperation(entry model.OperationLog) {
 	entry.Time = time.Now()
+	if entry.Operator == "" {
+		entry.Operator = CurrentOperator()
+	}
 	err := config.DB.Create(&entry).Error
 	if err != nil {
 		println("记录操作日志失败:", err.Error())

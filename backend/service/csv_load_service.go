@@ -28,11 +28,13 @@ func LoadCoursesFromCSV() error {
 		csvRepo.LoadCourses,
 		func(c model.Course) string { return c.CourseCode },
 		func(code string) error {
-			// 仅传递错误，ImportFromCSV 内部通过 errors.Is 判断是否为 ErrRecordNotFound
 			_, err := repository.GetCourseByCode(code)
 			return err
 		},
-		repository.CreateCourse,
+		func(c *model.Course) error {
+			c.CreatorName = "admin"
+			return repository.CreateCourse(c)
+		},
 		"课程",
 	)
 }

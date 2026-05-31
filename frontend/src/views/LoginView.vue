@@ -4,7 +4,9 @@
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '../store/auth'
   import { Login } from '../../wailsjs/go/api/AuthAPI'
+  import { useNotify } from '../composables/useNotify'
 
+  const notify = useNotify()
   const username = ref('')
   const password = ref('')
   const loading = ref(false)
@@ -13,7 +15,7 @@
 
   async function handleLogin() {
     if (!username.value || !password.value) {
-      alert('请输入用户名和密码')
+      await notify.info('请输入用户名和密码')
       return
     }
     loading.value = true
@@ -22,7 +24,7 @@
       authStore.setUser(user)
       await router.push('/main/dashboard')
     } catch (err) {
-      alert(err)
+      await notify.error(String(err))
     } finally {
       loading.value = false
     }
@@ -61,7 +63,7 @@
         </button>
       </div>
 
-      <div class="login-hint">默认账号：admin / 123456</div>
+      <div class="login-hint">默认账号：admin / 12345678</div>
     </div>
   </div>
 </template>

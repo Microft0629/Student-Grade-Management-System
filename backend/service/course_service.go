@@ -2,6 +2,7 @@
 package service
 
 import (
+	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	"errors"
@@ -24,6 +25,12 @@ func CreateCourse(course *model.Course) error {
 	if course.Credit <= 0 {
 		return errors.New("学分必须大于0")
 	}
+	if course.Teacher == "" {
+		return errors.New("任课教师不能为空")
+	}
+	// 记录创建人
+	course.CreatorName = CurrentOperator()
+
 	// 将课程数据持久化至数据库
 	err := repository.CreateCourse(course)
 	if err != nil {
@@ -41,6 +48,17 @@ func GetAllCourses() ([]model.Course, error) {
 
 // DeleteCourse 根据 ID 删除课程记录，成功后自动同步更新 CSV 备份文件
 func DeleteCourse(id uint) error {
+	// 老师只能删除自己创建的课程，管理员可删除全部
+	if !IsAdmin() {
+		var course model.Course
+		if err := config.DB.First(&course, id).Error; err != nil {
+			return errors.New("课程不存在")
+		}
+		if course.CreatorName != CurrentOperator() {
+			return errors.New("只能删除自己创建的课程")
+		}
+	}
+
 	// 从数据库中删除指定 ID 的课程记录
 	err := repository.DeleteCourse(id)
 	if err != nil {

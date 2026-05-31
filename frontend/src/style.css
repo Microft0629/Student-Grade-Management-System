@@ -85,17 +85,18 @@ button:hover {
 }
 .data-table th {
     background: #fafafa;
-    padding: 12px 14px;
-    text-align: left;
+    padding: 14px 20px;
+    text-align: center;
     font-weight: 600;
     color: #555;
     border-bottom: 2px solid #e8e8e8;
     white-space: nowrap;
 }
 .data-table td {
-    padding: 10px 14px;
+    padding: 14px 20px;
     border-bottom: 1px solid #f0f0f0;
     color: #333;
+    text-align: center;
 }
 .data-table tr:hover td {
     background: #f5f7fa;

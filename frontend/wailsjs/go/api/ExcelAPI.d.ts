@@ -3,4 +3,8 @@
 
 export function ExportCourseStats(arg1:number):Promise<string>;
 
+export function ExportOperationLogs():Promise<string>;
+
 export function ExportStudentStats(arg1:number):Promise<string>;
+
+export function ExportTranscript(arg1:string):Promise<string>;

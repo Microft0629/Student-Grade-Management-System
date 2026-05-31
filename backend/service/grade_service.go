@@ -47,8 +47,9 @@ func CreateGrade(grade *model.Grade) error {
 		return errors.New("该学生该课程成绩已存在")
 	}
 
-	// 自动计算绩点
+	// 自动计算绩点，记录录入人
 	grade.GradePoint = utils.CalculateGradePoint(grade.Score)
+	grade.CreatorName = CurrentOperator()
 	err = repository.CreateGrade(grade)
 	if err != nil {
 		return err
@@ -81,6 +82,11 @@ func UpdateGrade(id uint, newScore float64) error {
 	}
 	if target == nil {
 		return errors.New("成绩记录不存在")
+	}
+
+	// 老师只能修改自己录入的成绩，管理员可修改全部
+	if !IsAdmin() && target.CreatorName != CurrentOperator() {
+		return errors.New("只能修改自己录入的成绩")
 	}
 
 	oldScore := target.Score
@@ -125,6 +131,14 @@ func DeleteGrade(id uint) error {
 			break
 		}
 	}
+	if target == nil {
+		return errors.New("成绩记录不存在")
+	}
+
+	// 老师只能删除自己录入的成绩，管理员可删除全部
+	if !IsAdmin() && target.CreatorName != CurrentOperator() {
+		return errors.New("只能删除自己录入的成绩")
+	}
 
 	// 从数据库中删除成绩
 	err := repository.DeleteGrade(id)
@@ -133,19 +147,16 @@ func DeleteGrade(id uint) error {
 	}
 
 	// 记录操作日志
-	if target != nil {
-		LogOperation(model.OperationLog{
-			Time:      time.Now(),
-			Action:    "删除",
-			Student:   target.Student.Name,
-			StudentID: target.Student.StudentID,
-			Course:    target.Course.CourseName,
-			Term:      target.Course.Term,
-			OldScore:  target.Score,
-			NewScore:  0,
-			Detail:    "删除成绩记录",
-		})
-	}
+	LogOperation(model.OperationLog{
+		Action:    "删除",
+		Student:   target.Student.Name,
+		StudentID: target.Student.StudentID,
+		Course:    target.Course.CourseName,
+		Term:      target.Course.Term,
+		OldScore:  target.Score,
+		NewScore:  0,
+		Detail:    "删除成绩记录",
+	})
 
 	// 数据库删除成功后，重新同步全量成绩到 CSV 以保持数据一致
 	return SyncGradesToCSV()

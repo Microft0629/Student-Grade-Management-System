@@ -2,6 +2,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { GetGpaRules, SaveGpaRules, ResetGpaRules, RecalculateAllGPA } from '../../wailsjs/go/api/GpaAPI'
+import { useNotify } from '../composables/useNotify'
+
+const notify = useNotify()
 
 const formulaText = ref('')
 const editMode = ref(false)
@@ -29,19 +32,19 @@ async function handleSave() {
     await SaveGpaRules(editedFormula.value)
     formulaText.value = editedFormula.value
     editMode.value = false
-    alert('保存成功')
-  } catch (error) { alert(error) }
+    await notify.success('保存成功')
+  } catch (error) { await notify.error(String(error)) }
 }
 async function handleReset() {
-  if (!confirm('确认重置为默认绩点换算公式？')) return
+  if (!await notify.confirm('确认重置为默认绩点换算公式？')) return
   try {
     await ResetGpaRules()
     await loadRules()
-    alert('已重置')
-  } catch (error) { alert(error) }
+    await notify.success('已重置')
+  } catch (error) { await notify.error(String(error)) }
 }
 async function handleRecalculate() {
-  if (!confirm('确认重新计算所有学生的绩点？此操作将覆盖所有已有绩点数据。')) return
+  if (!await notify.confirm('确认重新计算所有学生的绩点？此操作将覆盖所有已有绩点数据。')) return
   recalcMsg.value = '正在计算...'
   try {
     const count = await RecalculateAllGPA()
@@ -49,7 +52,7 @@ async function handleRecalculate() {
     recalcMsg.value = `计算完成：共更新 ${count} 条绩点记录`
   } catch (error) {
     recalcMsg.value = ''
-    alert(error)
+    await notify.error(String(error))
   }
 }
 

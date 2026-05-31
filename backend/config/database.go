@@ -50,11 +50,14 @@ func CreateDefaultAdmin() {
 		Count(&count)
 
 	if count > 0 {
+		// 已有管理员则更新密码为 12345678
+		password, _ := bcrypt.GenerateFromPassword([]byte("12345678"), bcrypt.DefaultCost)
+		DB.Model(&model.User{}).Where("username = ?", "admin").Update("password", string(password))
 		return
 	}
 
 	password, _ := bcrypt.GenerateFromPassword(
-		[]byte("123456"),
+		[]byte("12345678"),
 		bcrypt.DefaultCost,
 	)
 

@@ -5,15 +5,13 @@ import {model} from '../models';
 
 export function AggregateGrades(arg1:string,arg2:string):Promise<Array<service.AggregatedGrade>>;
 
-export function BatchAdjustScores(arg1:number,arg2:number,arg3:number):Promise<service.BatchAdjustResult>;
+export function BatchAdjustScores(arg1:number,arg2:number,arg3:number,arg4:number):Promise<service.BatchAdjustResult>;
 
 export function BatchImportGrades(arg1:Array<model.Grade>):Promise<number>;
 
 export function CreateGrade(arg1:model.Grade):Promise<void>;
 
 export function DeleteGrade(arg1:number):Promise<void>;
-
-export function ExportTranscript(arg1:string):Promise<string>;
 
 export function GetAllGrades():Promise<Array<model.Grade>>;
 
