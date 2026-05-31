@@ -5,6 +5,7 @@ import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
 	"errors"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,6 +17,14 @@ func CreateTeacher(username string, password string) error {
 	}
 	if username == "" {
 		return errors.New("用户名不能为空")
+	}
+	if len(username) != 7 {
+		return errors.New("用户名必须为7位数字")
+	}
+	for _, c := range username {
+		if c < '0' || c > '9' {
+			return errors.New("用户名只能包含数字")
+		}
 	}
 	if err := validatePassword(password); err != nil {
 		return err
@@ -37,7 +46,13 @@ func CreateTeacher(username string, password string) error {
 		Password: string(hashed),
 		Role:     "teacher",
 	}
-	return config.DB.Create(&user).Error
+	if err := config.DB.Create(&user).Error; err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return errors.New("账号 " + username + " 已存在")
+		}
+		return err
+	}
+	return nil
 }
 
 // DeleteUser 管理员删除老师账号（不能删除 admin）

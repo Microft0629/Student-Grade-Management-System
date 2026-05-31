@@ -5,7 +5,7 @@ import "time"
 
 // OperationLog 成绩修改操作日志
 type OperationLog struct {
-	ID        uint      `Gorm:"primaryKey"` // 主键
+	ID        uint      `gorm:"primaryKey"` // 主键
 	Time      time.Time // 操作时间
 	Operator  string    // 操作人
 	Action    string    // 操作类型：新增/修改/删除/批量调整/导入

@@ -4,6 +4,7 @@ package service
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
 	"fmt"
 	"os"
@@ -124,13 +125,12 @@ func ExportStudentStatsExcel(studentID uint) (string, error) {
 	// 获取该学生的所有成绩
 	var grades []model.Grade
 	err := config.DB.
-		Preload("Student").
-		Preload("Course").
 		Where("student_id = ?", studentID).
 		Find(&grades).Error
 	if err != nil {
 		return "", fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 	if len(grades) == 0 {
 		return "", fmt.Errorf("该学生暂无成绩数据")
 	}
@@ -254,7 +254,7 @@ func ExportStudentStatsExcel(studentID uint) (string, error) {
 // ExportTranscriptExcel 导出标准化成绩单为 Excel 文件
 func ExportTranscriptExcel(term string) (string, error) {
 	var grades []model.Grade
-	query := config.DB.Preload("Student").Preload("Course")
+	query := config.DB
 
 	if term != "" {
 		query = query.Joins("JOIN courses ON courses.id = grades.course_id").
@@ -265,6 +265,7 @@ func ExportTranscriptExcel(term string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	f := excelize.NewFile()
 	defer func() { _ = f.Close() }()

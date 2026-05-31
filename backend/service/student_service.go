@@ -2,9 +2,11 @@
 package service
 
 import (
+	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	"errors"
+	"strings"
 )
 
 // CreateStudent 创建新学生记录（仅管理员），成功后自动同步更新 CSV 备份文件
@@ -14,6 +16,14 @@ func CreateStudent(student *model.Student) error {
 	}
 	if student.StudentID == "" {
 		return errors.New("学号不能为空")
+	}
+	if len(student.StudentID) != 7 {
+		return errors.New("学号必须为7位数字")
+	}
+	for _, c := range student.StudentID {
+		if c < '0' || c > '9' {
+			return errors.New("学号只能包含数字")
+		}
 	}
 	if student.Name == "" {
 		return errors.New("姓名不能为空")
@@ -31,6 +41,9 @@ func CreateStudent(student *model.Student) error {
 	// 将学生数据持久化至数据库
 	err := repository.CreateStudent(student)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return errors.New("学号 " + student.StudentID + " 已存在，请使用其他学号")
+		}
 		return err
 	}
 
@@ -43,12 +56,14 @@ func GetAllStudents() ([]model.Student, error) {
 	return repository.GetAllStudents()
 }
 
-// DeleteStudent 根据 ID 删除学生记录（仅管理员），成功后自动同步更新 CSV 备份文件
+// DeleteStudent 根据 ID 删除学生及关联成绩（仅管理员），成功后自动同步更新 CSV 备份文件
 func DeleteStudent(id uint) error {
 	if !IsAdmin() {
 		return errors.New("仅管理员可删除学生")
 	}
-	// 从数据库中删除指定 ID 的学生记录
+	// 先删除该学生的所有成绩记录
+	config.DB.Where("student_id = ?", id).Delete(&model.Grade{})
+	// 再删除学生记录
 	err := repository.DeleteStudent(id)
 	if err != nil {
 		return err

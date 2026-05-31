@@ -4,6 +4,7 @@ package service
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
 	"fmt"
 	"sort"
@@ -13,11 +14,7 @@ import (
 
 // GetStudentStatistics 获取所有学生的成绩统计数据（含平均分、GPA、总学分及课程数）
 func GetStudentStatistics() ([]model.StudentStatistics, error) {
-	var grades []model.Grade
-	err := config.DB.
-		Preload("Student").
-		Preload("Course").
-		Find(&grades).Error
+	grades, err := repository.GetAllGrades()
 	if err != nil {
 		return nil, err
 	}
@@ -66,10 +63,9 @@ func GetStudentStatistics() ([]model.StudentStatistics, error) {
 func GetCourseStatistics(courseID uint) (*model.CourseStatistics, error) {
 	var grades []model.Grade
 	err := config.DB.
-		Preload("Student").
-		Preload("Course").
 		Where("course_id = ?", courseID).
 		Find(&grades).Error
+	repository.LoadAssociations(grades)
 	if err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
@@ -134,12 +130,11 @@ func GetCourseStatistics(courseID uint) (*model.CourseStatistics, error) {
 func GetStudentRanking() ([]model.StudentRanking, error) {
 	var grades []model.Grade
 	err := config.DB.
-		Preload("Student").
-		Preload("Course").
 		Find(&grades).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	type studentData struct {
 		student    model.Student
@@ -210,11 +205,10 @@ func GenerateStatisticsReport(term string) (string, error) {
 		for _, r := range rankings {
 			var grades []model.Grade
 			config.DB.
-				Preload("Student").
-				Preload("Course").
 				Where("student_id = (SELECT id FROM students WHERE student_id = ?)", r.StudentID).
 				Where("course_id IN (SELECT id FROM courses WHERE term = ?)", term).
 				Find(&grades)
+			repository.LoadAssociations(grades)
 
 			if len(grades) == 0 {
 				continue

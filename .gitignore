@@ -34,8 +34,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# 数据库（运行时生成）
+# 数据库与运行时生成文件
 database/
+gen_license.js
 
 # 运行时生成的目录与文件
 export/

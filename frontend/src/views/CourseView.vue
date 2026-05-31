@@ -25,6 +25,7 @@ async function loadCourses() {
 
 async function handleCreate() {
   if (!form.value.CourseCode) { await notify.info('请输入课程代码'); return }
+  if (!/^[\d.]+$/.test(form.value.CourseCode)) { await notify.info('课程代码只能包含数字和 .'); return }
   if (!form.value.CourseName) { await notify.info('请输入课程名称'); return }
   if (!form.value.Term) { await notify.info('请选择学期'); return }
   if (!form.value.Credit || form.value.Credit <= 0) { await notify.info('请输入有效的学分'); return }

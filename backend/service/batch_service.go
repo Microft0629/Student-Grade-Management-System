@@ -4,6 +4,7 @@ package service
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
 	"fmt"
 	"strings"
@@ -20,13 +21,12 @@ type BatchAdjustResult struct {
 func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*BatchAdjustResult, error) {
 	var grades []model.Grade
 	err := config.DB.
-		Preload("Student").
-		Preload("Course").
 		Where("course_id = ? AND score >= ? AND score <= ?", courseID, minScore, maxScore).
 		Find(&grades).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	result := &BatchAdjustResult{}
 	for _, grade := range grades {
@@ -97,7 +97,7 @@ type AggregatedGrade struct {
 // AggregateGrades 跨课程/跨学期的成绩数据汇总
 func AggregateGrades(term string, courseKeyword string) ([]AggregatedGrade, error) {
 	var grades []model.Grade
-	query := config.DB.Preload("Student").Preload("Course")
+	query := config.DB
 
 	if term != "" {
 		query = query.Where("courses.term = ?", term)
@@ -108,10 +108,11 @@ func AggregateGrades(term string, courseKeyword string) ([]AggregatedGrade, erro
 	}
 
 	// 简化查询：先获取全部再内存筛选
-	err := config.DB.Preload("Student").Preload("Course").Find(&grades).Error
+	err := config.DB.Find(&grades).Error
 	if err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	var result []AggregatedGrade
 	for _, grade := range grades {
@@ -141,7 +142,7 @@ func AggregateGrades(term string, courseKeyword string) ([]AggregatedGrade, erro
 // ExportTranscript 导出标准化成绩单
 func ExportTranscript(term string) (string, error) {
 	var grades []model.Grade
-	query := config.DB.Preload("Student").Preload("Course")
+	query := config.DB
 
 	if term != "" {
 		query = query.Joins("JOIN courses ON courses.id = grades.course_id").
@@ -152,6 +153,7 @@ func ExportTranscript(term string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	// 按学生分组
 	studentMap := make(map[uint][]model.Grade)

@@ -35,6 +35,7 @@ async function loadStudents() {
 
 async function handleCreate() {
   if (!form.value.StudentID) { await notify.info('请输入学号'); return }
+  if (!/^\d{7}$/.test(form.value.StudentID)) { await notify.info('学号必须为7位数字'); return }
   if (!form.value.Name) { await notify.info('请输入姓名'); return }
   if (!form.value.Gender) { await notify.info('请选择性别'); return }
   if (!form.value.ClassName) { await notify.info('请输入班级'); return }

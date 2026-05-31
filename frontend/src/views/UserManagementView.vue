@@ -22,7 +22,8 @@ async function loadTeachers() {
 }
 
 async function handleCreate() {
-  if (!newUsername.value) { await notify.info('请输入用户名（数字工号）'); return }
+  if (!newUsername.value) { await notify.info('请输入用户名（7位数字工号）'); return }
+  if (!/^\d{7}$/.test(newUsername.value)) { await notify.info('用户名必须为7位数字'); return }
   if (!newPassword.value) { await notify.info('请输入密码'); return }
   if (newPassword.value.length < 8 || newPassword.value.length > 12) { await notify.info('密码长度须为8-12位'); return }
   try {
@@ -61,7 +62,7 @@ onMounted(() => { loadTeachers() })
 
       <div v-if="showForm" style="background:#fafafa;padding:16px;border-radius:8px;margin-bottom:16px;">
         <div class="form-row">
-          <input v-model="newUsername" placeholder="用户名（数字工号）" />
+          <input v-model="newUsername" placeholder="用户名（7位数字工号）" />
           <input v-model="newPassword" type="password" placeholder="密码（8-12位）" />
           <button class="btn-primary" @click="handleCreate">确认新增</button>
         </div>

@@ -7,20 +7,34 @@ import (
 	"strings"
 )
 
+// LoadAssociations 手动加载成绩记录关联的学生和课程（替代 Preload，避免 GORM 关联推断问题）
+func LoadAssociations(grades []model.Grade) {
+	for i := range grades {
+		var student model.Student
+		if config.DB.First(&student, grades[i].StudentID).Error == nil {
+			grades[i].Student = student
+		}
+		var course model.Course
+		if config.DB.First(&course, grades[i].CourseID).Error == nil {
+			grades[i].Course = course
+		}
+	}
+}
+
 // CreateGrade 在数据库中创建一条新的成绩记录
 func CreateGrade(grade *model.Grade) error {
 	return config.DB.Create(grade).Error
 }
 
-// GetAllGrades 从数据库中查询所有成绩记录，并预加载关联的学生与课程信息
+// GetAllGrades 从数据库中查询所有成绩记录，并加载关联的学生与课程信息
 func GetAllGrades() ([]model.Grade, error) {
 	var grades []model.Grade
-	err := config.DB.
-		Preload("Student").
-		Preload("Course").
-		Find(&grades).Error
-
-	return grades, err
+	err := config.DB.Find(&grades).Error
+	if err != nil {
+		return nil, err
+	}
+	LoadAssociations(grades)
+	return grades, nil
 }
 
 // DeleteGrade 根据指定的 ID 从数据库中删除对应的成绩记录
@@ -60,45 +74,25 @@ func SearchGrades(
 ) ([]model.Grade, error) {
 	var grades []model.Grade
 
-	// 预加载关联对象
-	query := config.DB.
-		Preload("Student").
-		Preload("Course")
-	err := query.Find(&grades).Error
+	err := config.DB.Find(&grades).Error
 	if err != nil {
 		return nil, err
 	}
+	LoadAssociations(grades)
 
 	var result []model.Grade
 
-	// 学生/课程关键词做模糊匹配
 	for _, grade := range grades {
-		// 学生关键词同时匹配姓名与学号，为空则跳过该条件
 		matchStudent := studentKeyword == "" ||
-			strings.Contains(
-				grade.Student.Name,
-				studentKeyword,
-			) ||
-			strings.Contains(
-				grade.Student.StudentID,
-				studentKeyword,
-			)
-		// 课程关键词仅匹配课程名称，为空则跳过该条件
+			strings.Contains(grade.Student.Name, studentKeyword) ||
+			strings.Contains(grade.Student.StudentID, studentKeyword)
 		matchCourse := courseKeyword == "" ||
-			strings.Contains(
-				grade.Course.CourseName,
-				courseKeyword,
-			)
-		// 学期关键词仅匹配学期名，为空则跳过该条件
+			strings.Contains(grade.Course.CourseName, courseKeyword)
 		matchTerm := term == "" ||
 			grade.Course.Term == term
 
-		// 所有非空条件均满足时才纳入结果
 		if matchStudent && matchCourse && matchTerm {
-			result = append(
-				result,
-				grade,
-			)
+			result = append(result, grade)
 		}
 	}
 

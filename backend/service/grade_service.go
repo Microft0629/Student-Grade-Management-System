@@ -8,6 +8,7 @@ import (
 	"Student-Grade-Management-System/backend/utils"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -52,6 +53,9 @@ func CreateGrade(grade *model.Grade) error {
 	grade.CreatorName = CurrentOperator()
 	err = repository.CreateGrade(grade)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return errors.New("该学生该课程的成绩已存在")
+		}
 		return err
 	}
 

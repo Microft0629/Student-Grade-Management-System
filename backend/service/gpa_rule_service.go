@@ -4,6 +4,7 @@ package service
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
 	"fmt"
 	"os"
@@ -52,10 +53,11 @@ func GetDefaultGpaRules() string {
 // RecalculateAllGPA 批量重新计算所有学生绩点并更新成绩文件
 func RecalculateAllGPA() (int, error) {
 	var grades []model.Grade
-	err := config.DB.Preload("Student").Preload("Course").Find(&grades).Error
+	err := config.DB.Find(&grades).Error
 	if err != nil {
 		return 0, fmt.Errorf("查询成绩失败: %w", err)
 	}
+	repository.LoadAssociations(grades)
 
 	count := 0
 	for _, grade := range grades {
