@@ -73,8 +73,9 @@ wails dev
 ### 构建可执行文件
 ```bash
 wails build
+cp build/bin/Student-Grade-Management-System.exe .
 ```
-产物在 `build/bin/Student-Grade-Management-System.exe`
+产物 `Student-Grade-Management-System.exe` 在项目根目录，与 `database/`、`data/` 同级，双击即可运行。
 
 ### 构建安装包
 需安装 [NSIS](https://nsis.sourceforge.io/)：
