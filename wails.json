@@ -9,5 +9,12 @@
   "author": {
     "name": "Microft0629",
     "email": "2439062600@qq.com"
+  },
+  "info": {
+    "companyName": "Microft0629",
+    "productName": "学生成绩管理系统",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2026",
+    "comments": "Student Grade Management System"
   }
 }

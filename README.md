@@ -70,10 +70,18 @@
 wails dev
 ```
 
-### 构建生产版本
+### 构建可执行文件
 ```bash
 wails build
 ```
+产物在 `build/bin/Student-Grade-Management-System.exe`
+
+### 构建安装包
+需安装 [NSIS](https://nsis.sourceforge.io/)：
+```bash
+wails build -nsis
+```
+产物在 `build/bin/Student-Grade-Management-System-amd64-installer.exe`
 
 ### 默认账号
 | 角色 | 用户名 | 密码 |
@@ -96,17 +104,19 @@ wails build
 │   ├── service/         # 业务逻辑层
 │   └── utils/           # 绩点计算工具
 ├── frontend/
-│   └── src/
-│       ├── views/       # 页面组件
-│       ├── components/  # 通用组件
-│       ├── composables/ # 组合式函数（通知弹窗等）
-│       ├── layout/      # 布局组件
-│       ├── router/      # 路由配置
-│       └── store/       # Pinia 状态管理
+│   ├── src/
+│   │   ├── views/       # 页面组件（11 个视图）
+│   │   ├── components/  # 通用组件（通知弹窗、可搜索选择器）
+│   │   ├── composables/ # 组合式函数（notify、clickOutside）
+│   │   ├── layout/      # 主布局（侧边栏 + 内容区）
+│   │   ├── router/      # 路由配置（含权限守卫）
+│   │   └── store/       # Pinia 状态管理（auth）
+│   └── wailsjs/         # Wails 自动生成的前端绑定
 ├── data/                # CSV 数据文件与规则配置
-├── build/               # 构建资源（图标等）
-├── export/              # Excel 导出目录
-└── backup/              # 数据备份目录
+├── build/               # 构建资源（图标、NSIS 安装脚本）
+├── database/            # SQLite 数据库（运行时生成，不入库）
+├── export/              # Excel 导出目录（运行时生成）
+└── backup/              # 数据备份目录（运行时生成）
 ```
 
 ## 数据存储
