@@ -4,8 +4,11 @@ package service
 import (
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
+	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -63,7 +66,9 @@ func LogValidationError(student, course string, score float64, reason string) {
 		Score:   score,
 		Reason:  reason,
 	}
-	_ = appendErrorLog(entry)
+	if err := appendErrorLog(entry); err != nil {
+		println("记录校验错误日志失败:", err.Error())
+	}
 }
 
 // ReadErrorLogs 读取所有错误日志
@@ -79,15 +84,76 @@ func ReadErrorLogs() ([]model.ErrorLog, error) {
 	}
 	defer func() { _ = file.Close() }()
 
-	var entry model.ErrorLog
-	for {
-		_, err := fmt.Fscanf(file, "[%s] 学生=%s 课程=%s 分数=%f 原因=%[^\n]\n",
-			&entry.Time, &entry.Student, &entry.Course, &entry.Score, &entry.Reason)
-		if err != nil {
-			break
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
 		}
-		logs = append(logs, entry)
+		if entry, ok := parseErrorLogLine(line); ok {
+			logs = append(logs, entry)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
 	return logs, nil
+}
+
+// parseErrorLogLine 解析单行错误日志
+// 行格式：[2006-01-02 15:04:05] 学生=xxx 课程=xxx 分数=87.0 原因=xxx
+func parseErrorLogLine(line string) (model.ErrorLog, bool) {
+	var entry model.ErrorLog
+
+	if !strings.HasPrefix(line, "[") {
+		return entry, false
+	}
+	end := strings.Index(line, "]")
+	if end <= 1 {
+		return entry, false
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05", strings.TrimSpace(line[1:end]))
+	if err != nil {
+		return entry, false
+	}
+	entry.Time = t
+
+	rest := line[end+1:]
+	var ok bool
+	if entry.Student, ok = extractLogField(rest, "学生=", " 课程="); !ok {
+		return model.ErrorLog{}, false
+	}
+	if entry.Course, ok = extractLogField(rest, "课程=", " 分数="); !ok {
+		return model.ErrorLog{}, false
+	}
+	scoreStr, ok := extractLogField(rest, "分数=", " 原因=")
+	if !ok {
+		return model.ErrorLog{}, false
+	}
+	score, err := strconv.ParseFloat(scoreStr, 64)
+	if err != nil {
+		return model.ErrorLog{}, false
+	}
+	entry.Score = score
+	entry.Reason, _ = extractLogField(rest, "原因=", "")
+	return entry, true
+}
+
+// extractLogField 从日志行剩余部分中提取 "前缀...分隔符" 之间的字段值
+func extractLogField(s, prefix, sep string) (string, bool) {
+	idx := strings.Index(s, prefix)
+	if idx < 0 {
+		return "", false
+	}
+	rest := s[idx+len(prefix):]
+	if sep == "" {
+		return strings.TrimSpace(rest), true
+	}
+	sepIdx := strings.Index(rest, sep)
+	if sepIdx < 0 {
+		return "", false
+	}
+	return strings.TrimSpace(rest[:sepIdx]), true
 }

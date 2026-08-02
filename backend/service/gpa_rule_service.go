@@ -4,7 +4,6 @@ package service
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
-	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
 	"fmt"
 	"os"
@@ -57,14 +56,15 @@ func RecalculateAllGPA() (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("查询成绩失败: %w", err)
 	}
-	repository.LoadAssociations(grades)
 
 	count := 0
 	for _, grade := range grades {
 		newGP := utils.CalculateGradePoint(grade.Score)
 		if grade.GradePoint != newGP {
-			grade.GradePoint = newGP
-			err = config.DB.Save(&grade).Error
+			// 只更新绩点字段，避免 GORM 连带保存 Student/Course 关联导致业务字段被覆盖
+			err = config.DB.Model(&model.Grade{}).
+				Where("id = ?", grade.ID).
+				Update("grade_point", newGP).Error
 			if err != nil {
 				return count, fmt.Errorf("更新绩点失败[ID=%d]: %w", grade.ID, err)
 			}

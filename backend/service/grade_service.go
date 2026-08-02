@@ -247,7 +247,14 @@ func logCreateOperation(grade *model.Grade) {
 	})
 }
 
-// updateGradeDirect 直接更新数据库中的成绩记录
+// updateGradeDirect 仅更新成绩的分数和绩点字段。
+// 注意：不能使用 DB.Save(grade) 保存带关联结构的成绩记录，
+// GORM 会连带保存 Student/Course 关联并把学号/课程代码等业务字段覆盖为数据库主键。
 func updateGradeDirect(grade *model.Grade) error {
-	return config.DB.Save(grade).Error
+	return config.DB.Model(&model.Grade{}).
+		Where("id = ?", grade.ID).
+		Updates(map[string]interface{}{
+			"score":       grade.Score,
+			"grade_point": grade.GradePoint,
+		}).Error
 }

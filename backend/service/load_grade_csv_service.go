@@ -6,6 +6,9 @@ import (
 	"Student-Grade-Management-System/backend/repository"
 	csvRepo "Student-Grade-Management-System/backend/repository/csv"
 	"Student-Grade-Management-System/backend/utils"
+	"errors"
+
+	"gorm.io/gorm"
 )
 
 // LoadGradesFromCSV 从 CSV 文件批量导入成绩到数据库（已存在则跳过）
@@ -23,6 +26,9 @@ func LoadGradesFromCSV() error {
 
 		course, err := repository.GetCourseByCode(file.CourseCode)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue // 课程不存在则跳过该成绩文件
+			}
 			return err
 		}
 

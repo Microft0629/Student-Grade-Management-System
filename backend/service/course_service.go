@@ -6,6 +6,7 @@ import (
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -69,15 +70,19 @@ func DeleteCourse(id uint) error {
 	}
 
 	// 先删除该课程的所有成绩记录
-	config.DB.Where("course_id = ?", id).Delete(&model.Grade{})
+	if err := config.DB.Where("course_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
+		return fmt.Errorf("删除课程成绩失败: %w", err)
+	}
 	// 再删除课程记录
-	err := repository.DeleteCourse(id)
-	if err != nil {
+	if err := repository.DeleteCourse(id); err != nil {
 		return err
 	}
 
-	// 数据库删除成功后，同步刷新 CSV 文件以保持数据一致性
-	return SyncCoursesToCSV()
+	// 数据库删除成功后，同步刷新课程及成绩 CSV 文件以保持数据一致性
+	if err := SyncCoursesToCSV(); err != nil {
+		return err
+	}
+	return SyncGradesToCSV()
 }
 
 // SearchCourses 按课程名称搜索

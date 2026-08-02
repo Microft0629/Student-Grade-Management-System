@@ -2,14 +2,20 @@
 package service
 
 import (
+	"Student-Grade-Management-System/backend/config"
+	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	csvRepo "Student-Grade-Management-System/backend/repository/csv"
+	"Student-Grade-Management-System/backend/utils"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 const backupRoot = "backup"
@@ -102,18 +108,30 @@ func ListBackups() ([]string, error) {
 }
 
 // RestoreFromBackup 从备份目录恢复数据
+// 备份目录名支持两种格式：term_timestamp（按学期备份）和 courseCode_term_timestamp（按课程备份）。
+// 恢复采用覆盖语义：备份中每个课程对应的现有成绩会被替换为备份文件中的成绩。
 func RestoreFromBackup(backupName string) error {
+	if backupName == "" || filepath.Base(backupName) != backupName || strings.Contains(backupName, "..") {
+		return fmt.Errorf("备份名称不合法: %s", backupName)
+	}
+
 	backupDir := filepath.Join(backupRoot, backupName)
 
-	_, err := os.Stat(backupDir)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("备份[%s]不存在", backupName)
+	info, err := os.Stat(backupDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("备份[%s]不存在", backupName)
+		}
+		return fmt.Errorf("读取备份目录失败: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("备份[%s]不是目录", backupName)
 	}
 
 	// 从备份目录名解析学期信息（格式：term_timestamp 或 courseCode_term_timestamp）
-	parts := strings.Split(backupName, "_")
-	if len(parts) < 2 {
-		return fmt.Errorf("备份名称格式不正确: %s", backupName)
+	term, err := parseBackupTerm(backupName)
+	if err != nil {
+		return err
 	}
 
 	// 扫描备份目录下的 CSV 文件
@@ -121,74 +139,88 @@ func RestoreFromBackup(backupName string) error {
 	if err != nil {
 		return fmt.Errorf("扫描备份文件失败: %w", err)
 	}
-
 	if len(csvFiles) == 0 {
 		return fmt.Errorf("备份[%s]中没有成绩文件", backupName)
 	}
 
+	restoredCount := 0
 	for _, csvFile := range csvFiles {
 		// 从文件名提取课程代码
 		courseCode := strings.TrimSuffix(filepath.Base(csvFile), ".csv")
 
-		// 从备份目录名提取学期
-		var term string
-		if len(parts) >= 2 && strings.Contains(parts[1], "-") {
-			// 格式：courseCode_term_timestamp
-			if len(parts) >= 3 && strings.Contains(parts[1], "-") {
-				term = parts[1]
-			} else {
-				// 格式：term_timestamp
-				term = parts[0]
+		// 课程不存在则跳过（学生/课程主数据不在成绩备份范围内）
+		course, err := repository.GetCourseByCode(courseCode)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
 			}
-		}
-
-		if term == "" {
-			continue
+			return fmt.Errorf("查询课程[%s]失败: %w", courseCode, err)
 		}
 
 		// 确保目标目录存在
 		dstDir := filepath.Join("data", "grades", term)
-		err = os.MkdirAll(dstDir, 0755)
-		if err != nil {
+		if err := os.MkdirAll(dstDir, 0755); err != nil {
 			return fmt.Errorf("创建目标目录失败: %w", err)
 		}
 
 		dstPath := filepath.Join(dstDir, courseCode+".csv")
-		err = copyFile(csvFile, dstPath)
-		if err != nil {
+		if err := copyFile(csvFile, dstPath); err != nil {
 			return fmt.Errorf("恢复文件[%s]失败: %w", courseCode, err)
 		}
 
-		// 重新加载该课程的成绩到数据库
+		// 从已复制回的成绩文件读取备份行
 		rows, err := csvRepo.LoadCourseGrades(term, courseCode)
 		if err != nil {
 			return fmt.Errorf("读取恢复的成绩文件[%s]失败: %w", courseCode, err)
 		}
 
-		course, err := repository.GetCourseByCode(courseCode)
-		if err != nil {
-			continue
+		// 覆盖语义：先删除该课程现有成绩，再按备份文件重新写入
+		if err := config.DB.Where("course_id = ?", course.ID).Delete(&model.Grade{}).Error; err != nil {
+			return fmt.Errorf("删除课程[%s]现有成绩失败: %w", courseCode, err)
 		}
 
 		for _, row := range rows {
 			student, err := repository.GetStudentByStudentID(row.StudentID)
 			if err != nil {
-				continue
+				continue // 学生不存在则跳过该条记录
 			}
 
-			// 删除旧成绩并插入新成绩（这里简化处理：仅在不存在时插入）
-			exists, _ := repository.GradeExists(student.ID, course.ID)
-			if exists {
-				continue
+			grade := model.Grade{
+				StudentID:   student.ID,
+				CourseID:    course.ID,
+				Score:       row.Score,
+				GradePoint:  utils.CalculateGradePoint(row.Score),
+				CreatorName: "admin",
 			}
-
-			// 创建成绩记录（批量导入逻辑在 load_grade_csv_service.go 中）
-			// 此处利用 LoadGradesFromCSV 完成
+			if err := repository.CreateGrade(&grade); err != nil {
+				return fmt.Errorf("恢复成绩[学号%s-课程%s]失败: %w", row.StudentID, courseCode, err)
+			}
 		}
+		restoredCount++
 	}
 
-	// 重新加载所有 CSV 数据到数据库
-	return LoadAllCSVData()
+	if restoredCount == 0 {
+		return fmt.Errorf("备份[%s]中没有可恢复的成绩数据（对应课程均不存在）", backupName)
+	}
+
+	// 从数据库重新同步全部成绩 CSV，保证与数据库一致
+	return SyncGradesToCSV()
+}
+
+// parseBackupTerm 从备份目录名解析学期
+// term_timestamp：parts[0] 为学期；courseCode_term_timestamp：parts[1] 为学期
+func parseBackupTerm(backupName string) (string, error) {
+	parts := strings.Split(backupName, "_")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("备份名称格式不正确: %s", backupName)
+	}
+	if strings.Contains(parts[0], "-") {
+		return parts[0], nil
+	}
+	if strings.Contains(parts[1], "-") {
+		return parts[1], nil
+	}
+	return "", fmt.Errorf("无法从备份名称中解析学期: %s", backupName)
 }
 
 func copyFile(src, dst string) error {

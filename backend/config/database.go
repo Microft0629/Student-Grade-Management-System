@@ -48,7 +48,7 @@ func InitDatabase() {
 	log.Println("数据表创建成功")
 }
 
-// CreateDefaultAdmin 创建管理员
+// CreateDefaultAdmin 创建默认管理员（仅当 admin 账号不存在时创建，绝不重置已有密码）
 func CreateDefaultAdmin() {
 	var count int64
 	DB.Model(&model.User{}).
@@ -56,16 +56,14 @@ func CreateDefaultAdmin() {
 		Count(&count)
 
 	if count > 0 {
-		// 已有管理员则更新密码为 12345678
-		password, _ := bcrypt.GenerateFromPassword([]byte("12345678"), bcrypt.DefaultCost)
-		DB.Model(&model.User{}).Where("username = ?", "admin").Update("password", string(password))
+		// 已有管理员账号则不做任何操作，避免覆盖用户修改过的密码
 		return
 	}
 
-	password, _ := bcrypt.GenerateFromPassword(
-		[]byte("12345678"),
-		bcrypt.DefaultCost,
-	)
+	password, err := bcrypt.GenerateFromPassword([]byte("12345678"), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal("创建默认管理员密码失败：", err)
+	}
 
 	admin := model.User{
 		Username: "admin",
@@ -73,7 +71,9 @@ func CreateDefaultAdmin() {
 		Role:     "admin",
 	}
 
-	DB.Create(&admin)
+	if err := DB.Create(&admin).Error; err != nil {
+		log.Fatal("创建默认管理员失败：", err)
+	}
 
 	log.Println("默认管理员创建成功")
 }

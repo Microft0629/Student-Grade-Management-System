@@ -44,7 +44,13 @@ func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta 
 		grade.Score = newScore
 		grade.GradePoint = utils.CalculateGradePoint(newScore)
 
-		err = config.DB.Save(&grade).Error
+		// 只更新分数和绩点字段，避免 GORM 连带保存 Student/Course 关联导致业务字段被覆盖
+		err = config.DB.Model(&model.Grade{}).
+			Where("id = ?", grade.ID).
+			Updates(map[string]interface{}{
+				"score":       newScore,
+				"grade_point": utils.CalculateGradePoint(newScore),
+			}).Error
 		if err != nil {
 			return result, fmt.Errorf("更新成绩失败[ID=%d]: %w", grade.ID, err)
 		}

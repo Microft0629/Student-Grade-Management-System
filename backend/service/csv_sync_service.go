@@ -4,6 +4,8 @@ package service
 import (
 	"Student-Grade-Management-System/backend/repository"
 	csvRepo "Student-Grade-Management-System/backend/repository/csv"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -36,9 +38,9 @@ func SyncCoursesToCSV() error {
 	)
 }
 
-// SyncGradesToCSV 从数据库读取全部成绩并按学期+课程分组同步写入 CSV 文件
+// SyncGradesToCSV 从数据库读取全部成绩并按学期+课程分组同步写入 CSV 文件，
+// 同时清理数据库中已不存在对应成绩记录的旧 CSV 文件，保证 CSV 与数据库一致。
 func SyncGradesToCSV() error {
-	// 获取所有成绩记录
 	grades, err := repository.GetAllGrades()
 	if err != nil {
 		return err
@@ -57,14 +59,11 @@ func SyncGradesToCSV() error {
 		}
 		key := grade.Course.Term + "|" + courseKey
 
-		group[key] = append(
-			group[key],
-			csvRepo.GradeCSV{
-				StudentID: grade.Student.StudentID,
-				Name:      grade.Student.Name,
-				Score:     grade.Score,
-			},
-		)
+		group[key] = append(group[key], csvRepo.GradeCSV{
+			StudentID: grade.Student.StudentID,
+			Name:      grade.Student.Name,
+			Score:     grade.Score,
+		})
 	}
 
 	// 遍历分组后的数据，逐组写入对应 CSV 文件
@@ -84,5 +83,43 @@ func SyncGradesToCSV() error {
 		}
 	}
 
+	// 清理不再对应任何数据库成绩记录的旧 CSV 文件
+	return removeStaleGradeFiles(group)
+}
+
+// removeStaleGradeFiles 删除 data/grades 下不在当前数据库成绩集合中的旧 CSV 文件
+func removeStaleGradeFiles(group map[string][]csvRepo.GradeCSV) error {
+	root := filepath.Join("data", "grades")
+	termDirs, err := os.ReadDir(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	for _, termDir := range termDirs {
+		if !termDir.IsDir() || termDir.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		dir := filepath.Join(root, termDir.Name())
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			if file.IsDir() || file.Type()&os.ModeSymlink != 0 || filepath.Ext(file.Name()) != ".csv" {
+				continue
+			}
+			courseCode := strings.TrimSuffix(file.Name(), ".csv")
+			key := termDir.Name() + "|" + courseCode
+			if _, exists := group[key]; exists {
+				continue
+			}
+			if err := os.Remove(filepath.Join(dir, file.Name())); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

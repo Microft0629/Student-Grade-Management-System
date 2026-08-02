@@ -6,6 +6,7 @@ import (
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -62,15 +63,19 @@ func DeleteStudent(id uint) error {
 		return errors.New("仅管理员可删除学生")
 	}
 	// 先删除该学生的所有成绩记录
-	config.DB.Where("student_id = ?", id).Delete(&model.Grade{})
+	if err := config.DB.Where("student_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
+		return fmt.Errorf("删除学生成绩失败: %w", err)
+	}
 	// 再删除学生记录
-	err := repository.DeleteStudent(id)
-	if err != nil {
+	if err := repository.DeleteStudent(id); err != nil {
 		return err
 	}
 
-	// 数据库删除成功后，同步刷新 CSV 文件以保持数据一致性
-	return SyncStudentsToCSV()
+	// 数据库删除成功后，同步刷新学生及成绩 CSV 文件以保持数据一致性
+	if err := SyncStudentsToCSV(); err != nil {
+		return err
+	}
+	return SyncGradesToCSV()
 }
 
 // SearchStudents 根据关键词搜索学生信息，将请求委托给数据访问层处理
