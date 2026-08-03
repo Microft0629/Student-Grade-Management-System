@@ -51,9 +51,9 @@
             { path: '/main/grades',       label: '成绩管理', icon: '📝' },
             { path: '/main/statistics',   label: '统计分析', icon: '📈' },
             { path: '/main/gpa',          label: '绩点规则', icon: '🎯' },
-            { path: '/main/datamgmt',     label: '数据管理', icon: '💾' },
         ]
         if (authStore.isAdmin()) {
+            items.push({ path: '/main/datamgmt', label: '数据管理', icon: '💾' })
             items.push({ path: '/main/users',  label: '用户管理', icon: '⚙️' })
             items.push({ path: '/main/logs',   label: '操作日志', icon: '📋' })
         }

@@ -56,6 +56,15 @@ func GetStudentByStudentID(studentID string) (*model.Student, error) {
 	return &student, nil
 }
 
+// GetStudentByID 根据数据库主键查询学生记录
+func GetStudentByID(id uint) (*model.Student, error) {
+	var student model.Student
+	if err := config.DB.First(&student, id).Error; err != nil {
+		return nil, err
+	}
+	return &student, nil
+}
+
 // GetStudentsByPage 分页查询学生列表，返回包含数据列表、总数及分页参数的结果
 func GetStudentsByPage(page int, pageSize int) (
 	model.StudentPageResult,

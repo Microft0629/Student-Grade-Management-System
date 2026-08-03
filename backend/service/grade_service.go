@@ -14,6 +14,11 @@ import (
 
 // CreateGrade 根据分数计算绩点，并调用数据访问层创建成绩记录
 func CreateGrade(grade *model.Grade) error {
+	// 必须登录后才能操作
+	if GetCurrentUser() == nil {
+		return errors.New("未登录")
+	}
+
 	// 学生校验
 	if grade.StudentID == 0 {
 		return errors.New("请选择学生")
@@ -22,6 +27,21 @@ func CreateGrade(grade *model.Grade) error {
 	// 课程校验
 	if grade.CourseID == 0 {
 		return errors.New("请选择课程")
+	}
+
+	// 学生与课程必须真实存在
+	student, err := repository.GetStudentByID(grade.StudentID)
+	if err != nil {
+		return errors.New("学生不存在")
+	}
+	course, err := repository.GetCourseByID(grade.CourseID)
+	if err != nil {
+		return errors.New("课程不存在")
+	}
+
+	// 老师只能为自己创建的课程录入成绩，管理员不受限制
+	if !IsAdmin() && course.CreatorName != CurrentOperator() {
+		return errors.New("只能为自己创建的课程录入成绩")
 	}
 
 	// 成绩范围校验
@@ -58,6 +78,11 @@ func CreateGrade(grade *model.Grade) error {
 		}
 		return err
 	}
+
+	// 创建成功后再补充关联信息，仅供操作日志展示；
+	// 不能在 Create 前设置，否则 GORM 会连带写入关联记录并把学号/课程代码覆盖为数据库主键
+	grade.Student = *student
+	grade.Course = *course
 
 	// 记录操作日志（需查询关联学生和课程信息）
 	logCreateOperation(grade)
@@ -185,6 +210,24 @@ func BatchImportGrades(grades []model.Grade) (int, []string, error) {
 	successCount := 0
 
 	for i, grade := range grades {
+		// 学生与课程必须真实存在
+		_, err := repository.GetStudentByID(grade.StudentID)
+		if err != nil {
+			errors_ = append(errors_, fmt.Sprintf("第%d条: 学生不存在", i+1))
+			continue
+		}
+		course, err := repository.GetCourseByID(grade.CourseID)
+		if err != nil {
+			errors_ = append(errors_, fmt.Sprintf("第%d条: 课程不存在", i+1))
+			continue
+		}
+
+		// 老师只能为自己创建的课程导入成绩，管理员不受限制
+		if !IsAdmin() && course.CreatorName != CurrentOperator() {
+			errors_ = append(errors_, fmt.Sprintf("第%d条: 只能为自己创建的课程录入成绩", i+1))
+			continue
+		}
+
 		// 分数范围校验
 		if err := ValidateScore(grade.Score); err != nil {
 			errMsg := fmt.Sprintf("第%d条: %v", i+1, err)
@@ -211,6 +254,7 @@ func BatchImportGrades(grades []model.Grade) (int, []string, error) {
 
 		// 计算绩点并写入
 		grade.GradePoint = utils.CalculateGradePoint(grade.Score)
+		grade.CreatorName = CurrentOperator()
 		err = repository.CreateGrade(&grade)
 		if err != nil {
 			errors_ = append(errors_, fmt.Sprintf("第%d条: 写入失败 - %v", i+1, err))
@@ -220,6 +264,12 @@ func BatchImportGrades(grades []model.Grade) (int, []string, error) {
 	}
 
 	if successCount > 0 {
+		// 记录批量导入操作日志
+		LogOperation(model.OperationLog{
+			Action: "导入",
+			Detail: fmt.Sprintf("批量导入成功 %d 条，失败 %d 条", successCount, len(errors_)),
+		})
+
 		err := SyncGradesToCSV()
 		if err != nil {
 			return successCount, errors_, fmt.Errorf("同步CSV失败: %w", err)

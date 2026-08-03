@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // CreateStudent 创建新学生记录（仅管理员），成功后自动同步更新 CSV 备份文件
@@ -57,17 +59,29 @@ func GetAllStudents() ([]model.Student, error) {
 	return repository.GetAllStudents()
 }
 
-// DeleteStudent 根据 ID 删除学生及关联成绩（仅管理员），成功后自动同步更新 CSV 备份文件
+// DeleteStudent 根据 ID 在事务中删除学生及关联成绩（仅管理员），成功后自动同步更新 CSV 备份文件
 func DeleteStudent(id uint) error {
 	if !IsAdmin() {
 		return errors.New("仅管理员可删除学生")
 	}
-	// 先删除该学生的所有成绩记录
-	if err := config.DB.Where("student_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
-		return fmt.Errorf("删除学生成绩失败: %w", err)
-	}
-	// 再删除学生记录
-	if err := repository.DeleteStudent(id); err != nil {
+
+	// 级联删除放在同一事务中，避免中途失败留下不一致数据
+	err := config.DB.Transaction(func(tx *gorm.DB) error {
+		// 先删除该学生的所有成绩记录
+		if err := tx.Where("student_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
+			return fmt.Errorf("删除学生成绩失败: %w", err)
+		}
+		// 再删除学生记录
+		result := tx.Delete(&model.Student{}, id)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("学生不存在")
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 

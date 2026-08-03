@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // CreateCourse 创建新课程记录，成功后自动同步更新 CSV 备份文件
@@ -56,7 +58,7 @@ func GetAllCourses() ([]model.Course, error) {
 	return repository.GetAllCourses()
 }
 
-// DeleteCourse 根据 ID 删除课程及关联成绩，成功后自动同步更新 CSV 备份文件
+// DeleteCourse 根据 ID 在事务中删除课程及关联成绩，成功后自动同步更新 CSV 备份文件
 func DeleteCourse(id uint) error {
 	// 老师只能删除自己创建的课程，管理员可删除全部
 	if !IsAdmin() {
@@ -69,12 +71,23 @@ func DeleteCourse(id uint) error {
 		}
 	}
 
-	// 先删除该课程的所有成绩记录
-	if err := config.DB.Where("course_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
-		return fmt.Errorf("删除课程成绩失败: %w", err)
-	}
-	// 再删除课程记录
-	if err := repository.DeleteCourse(id); err != nil {
+	// 级联删除放在同一事务中，避免中途失败留下不一致数据
+	err := config.DB.Transaction(func(tx *gorm.DB) error {
+		// 先删除该课程的所有成绩记录
+		if err := tx.Where("course_id = ?", id).Delete(&model.Grade{}).Error; err != nil {
+			return fmt.Errorf("删除课程成绩失败: %w", err)
+		}
+		// 再删除课程记录
+		result := tx.Delete(&model.Course{}, id)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("课程不存在")
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 

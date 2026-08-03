@@ -3,8 +3,10 @@
 import { ref, onMounted } from 'vue'
 import { GetGpaRules, SaveGpaRules, ResetGpaRules, RecalculateAllGPA } from '../../wailsjs/go/api/GpaAPI'
 import { useNotify } from '../composables/useNotify'
+import { useAuthStore } from '../store/auth'
 
 const notify = useNotify()
+const authStore = useAuthStore()
 
 const formulaText = ref('')
 const editMode = ref(false)
@@ -70,10 +72,11 @@ onMounted(() => { loadRules() })
 
       <div v-if="!editMode">
         <div class="report-text">{{ formulaText || '（未找到规则文件）' }}</div>
-        <div style="margin-top:12px;display:flex;gap:8px;">
+        <div v-if="authStore.isAdmin()" style="margin-top:12px;display:flex;gap:8px;">
           <button class="btn-primary" @click="startEdit">编辑规则</button>
           <button class="btn-default" @click="handleReset">重置为默认</button>
         </div>
+        <p v-else style="color:#999;font-size:13px;margin-top:12px;">仅管理员可修改绩点规则</p>
       </div>
 
       <div v-else>
@@ -92,7 +95,8 @@ onMounted(() => { loadRules() })
         使用当前公式重新计算所有成绩记录的绩点，并更新成绩文件。
         仅当绩点值发生变化时才会更新对应记录。
       </p>
-      <button class="btn-warning" @click="handleRecalculate">开始重新计算</button>
+      <button v-if="authStore.isAdmin()" class="btn-warning" @click="handleRecalculate">开始重新计算</button>
+      <p v-else style="color:#999;font-size:13px;">仅管理员可重新计算绩点</p>
       <p v-if="recalcMsg" :class="recalcResult >= 0 ? 'msg-success' : 'msg-error'" style="margin-top:12px;font-weight:500;">
         {{ recalcMsg }}
       </p>

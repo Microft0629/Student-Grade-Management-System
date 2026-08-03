@@ -42,6 +42,15 @@ func GetCourseByCode(courseCode string) (*model.Course, error) {
 	return &course, nil
 }
 
+// GetCourseByID 根据数据库主键查询课程
+func GetCourseByID(id uint) (*model.Course, error) {
+	var course model.Course
+	if err := config.DB.First(&course, id).Error; err != nil {
+		return nil, err
+	}
+	return &course, nil
+}
+
 // SearchCoursesByName 按课程名称模糊查询
 func SearchCoursesByName(keyword string) ([]model.Course, error) {
 	var courses []model.Course

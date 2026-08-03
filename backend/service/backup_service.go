@@ -22,6 +22,10 @@ const backupRoot = "backup"
 
 // BackupByTerm 备份指定学期的全部成绩数据
 func BackupByTerm(term string) (string, error) {
+	if !IsAdmin() {
+		return "", errors.New("仅管理员可备份数据")
+	}
+
 	timestamp := time.Now().Format("20060102_150405")
 	backupDir := filepath.Join(backupRoot, fmt.Sprintf("%s_%s", term, timestamp))
 
@@ -61,6 +65,10 @@ func BackupByTerm(term string) (string, error) {
 
 // BackupByCourse 备份指定课程的成绩数据
 func BackupByCourse(term string, courseCode string) (string, error) {
+	if !IsAdmin() {
+		return "", errors.New("仅管理员可备份数据")
+	}
+
 	timestamp := time.Now().Format("20060102_150405")
 	backupDir := filepath.Join(backupRoot, fmt.Sprintf("%s_%s_%s", courseCode, term, timestamp))
 
@@ -87,6 +95,10 @@ func BackupByCourse(term string, courseCode string) (string, error) {
 
 // ListBackups 列出所有备份目录
 func ListBackups() ([]string, error) {
+	if !IsAdmin() {
+		return nil, errors.New("仅管理员可查看备份")
+	}
+
 	_, err := os.Stat(backupRoot)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -111,6 +123,10 @@ func ListBackups() ([]string, error) {
 // 备份目录名支持两种格式：term_timestamp（按学期备份）和 courseCode_term_timestamp（按课程备份）。
 // 恢复采用覆盖语义：备份中每个课程对应的现有成绩会被替换为备份文件中的成绩。
 func RestoreFromBackup(backupName string) error {
+	if !IsAdmin() {
+		return errors.New("仅管理员可恢复数据")
+	}
+
 	if backupName == "" || filepath.Base(backupName) != backupName || strings.Contains(backupName, "..") {
 		return fmt.Errorf("备份名称不合法: %s", backupName)
 	}

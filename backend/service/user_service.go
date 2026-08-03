@@ -63,11 +63,27 @@ func DeleteUser(username string) error {
 	if username == "admin" {
 		return errors.New("不能删除管理员账号")
 	}
+
+	// 名下还有课程时不允许删除，避免产生无法归属的课程与成绩
+	var courseCount int64
+	if err := config.DB.Model(&model.Course{}).
+		Where("creator_name = ?", username).
+		Count(&courseCount).Error; err != nil {
+		return err
+	}
+	if courseCount > 0 {
+		return errors.New("该老师名下还有课程，请先删除或转移后再删除账号")
+	}
+
 	return config.DB.Where("username = ? AND role = ?", username, "teacher").Delete(&model.User{}).Error
 }
 
 // GetAllTeachers 获取所有老师账号
 func GetAllTeachers() ([]model.User, error) {
+	if !IsAdmin() {
+		return nil, errors.New("仅管理员可查看老师账号")
+	}
+
 	var users []model.User
 	err := config.DB.Where("role = ?", "teacher").Find(&users).Error
 	return users, err

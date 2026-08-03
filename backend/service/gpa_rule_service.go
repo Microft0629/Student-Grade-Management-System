@@ -5,6 +5,7 @@ import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/utils"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,6 +16,10 @@ const GpaRulesPath = "data/gpa_rules.txt"
 
 // SaveGpaRules 将绩点换算公式保存至 TXT 文件
 func SaveGpaRules(formula string) error {
+	if !IsAdmin() {
+		return errors.New("仅管理员可修改绩点规则")
+	}
+
 	err := os.MkdirAll("data", 0755)
 	if err != nil {
 		return err
@@ -51,6 +56,10 @@ func GetDefaultGpaRules() string {
 
 // RecalculateAllGPA 批量重新计算所有学生绩点并更新成绩文件
 func RecalculateAllGPA() (int, error) {
+	if !IsAdmin() {
+		return 0, errors.New("仅管理员可重新计算绩点")
+	}
+
 	var grades []model.Grade
 	err := config.DB.Find(&grades).Error
 	if err != nil {

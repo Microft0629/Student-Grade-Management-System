@@ -6,6 +6,7 @@ import (
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
 	"Student-Grade-Management-System/backend/utils"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -19,8 +20,24 @@ type BatchAdjustResult struct {
 
 // BatchAdjustScores 按课程+分数段对成绩进行批量加减分调整
 func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*BatchAdjustResult, error) {
+	// 课程必须存在
+	course, err := repository.GetCourseByID(courseID)
+	if err != nil {
+		return nil, errors.New("课程不存在")
+	}
+
+	// 分数范围校验
+	if minScore < 0 || maxScore > 100 || minScore > maxScore {
+		return nil, errors.New("分数范围无效：需在0-100之间且最小值不能大于最大值")
+	}
+
+	// 老师只能调整自己创建的课程，管理员不受限制
+	if !IsAdmin() && course.CreatorName != CurrentOperator() {
+		return nil, errors.New("只能调整自己创建的课程的成绩")
+	}
+
 	var grades []model.Grade
-	err := config.DB.
+	err = config.DB.
 		Where("course_id = ? AND score >= ? AND score <= ?", courseID, minScore, maxScore).
 		Find(&grades).Error
 	if err != nil {

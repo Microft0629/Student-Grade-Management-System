@@ -3,6 +3,7 @@ package api
 
 import (
 	"Student-Grade-Management-System/backend/service"
+	"errors"
 	"os/exec"
 	"runtime"
 )
@@ -47,6 +48,9 @@ func (e *ExcelAPI) ExportTranscript(term string) (string, error) {
 
 // ExportOperationLogs 导出操作日志 Excel 文件并打开，返回文件路径
 func (e *ExcelAPI) ExportOperationLogs() (string, error) {
+	if !service.IsAdmin() {
+		return "", errors.New("仅管理员可导出操作日志")
+	}
 	path, err := service.ExportOperationLogsExcel()
 	if err != nil {
 		return "", err

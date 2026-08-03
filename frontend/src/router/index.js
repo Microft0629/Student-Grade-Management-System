@@ -46,8 +46,8 @@ router.beforeEach((to, from, next) => {
         next('/')
         return
     }
-    // 管理员专属路由：操作日志、用户管理
-    const adminRoutes = ['/main/logs', '/main/users']
+    // 管理员专属路由：数据管理、操作日志、用户管理
+    const adminRoutes = ['/main/datamgmt', '/main/logs', '/main/users']
     if (adminRoutes.includes(to.path) && !authStore.isAdmin()) {
         next('/main/dashboard')
         return

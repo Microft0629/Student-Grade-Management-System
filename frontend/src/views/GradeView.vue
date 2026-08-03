@@ -54,6 +54,12 @@ const filteredCourses = computed(() => {
   return courses.value.filter(c => c.Term === searchForm.value.Term)
 })
 
+// 老师只能为自己创建的课程录入/调整成绩，管理员可操作全部课程
+const manageableCourses = computed(() => {
+  if (authStore.isAdmin()) return courses.value
+  return courses.value.filter(c => c.CreatorName === authStore.user?.Username)
+})
+
 async function loadData() {
   grades.value = await GetAllGrades()
   students.value = await GetAllStudents()
@@ -253,7 +259,7 @@ onMounted(() => { loadData() })
           </select>
           <select v-model.number="form.CourseID">
             <option value="0">选择课程</option>
-            <option v-for="c in courses" :key="c.ID" :value="c.ID">{{ c.CourseName }} ({{ c.Term }})</option>
+            <option v-for="c in manageableCourses" :key="c.ID" :value="c.ID">{{ c.CourseName }} ({{ c.Term }})</option>
           </select>
           <input v-model.number="form.Score" type="number" placeholder="分数 0-100" min="0" max="100" style="width:120px;" />
           <button class="btn-primary" @click="handleCreate">录入成绩</button>
@@ -336,7 +342,7 @@ onMounted(() => { loadData() })
       <div class="form-row">
         <select v-model.number="batchForm.CourseID">
           <option value="0">选择课程 *</option>
-          <option v-for="c in courses" :key="c.ID" :value="c.ID">{{ c.CourseName }}（{{ c.Term }}）</option>
+          <option v-for="c in manageableCourses" :key="c.ID" :value="c.ID">{{ c.CourseName }}（{{ c.Term }}）</option>
         </select>
         <span>分数范围：</span>
         <input v-model.number="batchForm.MinScore" type="number" placeholder="最低分" style="width:100px;" />
