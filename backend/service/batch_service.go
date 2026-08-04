@@ -8,7 +8,6 @@ import (
 	"Student-Grade-Management-System/backend/utils"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -151,75 +150,4 @@ func AggregateGrades(term string, courseKeyword string) ([]AggregatedGrade, erro
 	}
 
 	return result, nil
-}
-
-// ExportTranscript 导出标准化成绩单
-func ExportTranscript(term string) (string, error) {
-	var grades []model.Grade
-	query := config.DB
-
-	if term != "" {
-		query = query.Joins("JOIN courses ON courses.id = grades.course_id").
-			Where("courses.term = ?", term)
-	}
-
-	err := query.Find(&grades).Error
-	if err != nil {
-		return "", fmt.Errorf("查询成绩失败: %w", err)
-	}
-	repository.LoadAssociations(grades)
-
-	// 按学生分组
-	studentMap := make(map[uint][]model.Grade)
-	var studentIDs []uint
-	for _, grade := range grades {
-		if _, exists := studentMap[grade.StudentID]; !exists {
-			studentIDs = append(studentIDs, grade.StudentID)
-		}
-		studentMap[grade.StudentID] = append(studentMap[grade.StudentID], grade)
-	}
-
-	// 生成文字版成绩单（标签格式，避免中文字符列对齐问题）
-	var sb strings.Builder
-	sb.WriteString("========================================\n")
-	sb.WriteString("        标 准 化 成 绩 单\n")
-	if term != "" {
-		sb.WriteString(fmt.Sprintf("        学期：%s\n", term))
-	}
-	sb.WriteString("========================================\n\n")
-
-	for _, sid := range studentIDs {
-		studentGrades := studentMap[sid]
-		if len(studentGrades) == 0 {
-			continue
-		}
-
-		student := studentGrades[0].Student
-		sb.WriteString(fmt.Sprintf("▸ 学号: %s  姓名: %s\n", student.StudentID, student.Name))
-
-		var totalScore, totalCredit float64
-		for _, grade := range studentGrades {
-			sb.WriteString(fmt.Sprintf("  %s | 学分: %.1f | 分数: %.1f | 绩点: %.1f\n",
-				grade.Course.CourseName,
-				grade.Course.Credit,
-				grade.Score,
-				grade.GradePoint,
-			))
-			totalScore += grade.Score
-			totalCredit += grade.Course.Credit
-		}
-
-		avgScore := totalScore / float64(len(studentGrades))
-		gpa := utils.CalculateStudentGPA(studentGrades)
-
-		sb.WriteString(fmt.Sprintf("  → 平均分: %.1f | 绩点: %.2f | 总学分: %.1f\n",
-			avgScore, gpa, totalCredit))
-		sb.WriteString("\n")
-	}
-
-	sb.WriteString("========================================\n")
-	sb.WriteString(fmt.Sprintf("  打印时间：%s\n", time.Now().Format("2006-01-02 15:04:05")))
-	sb.WriteString("========================================\n")
-
-	return sb.String(), nil
 }

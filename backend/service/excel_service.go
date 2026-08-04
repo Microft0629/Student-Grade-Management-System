@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -108,7 +109,7 @@ func ExportCourseStatsExcel(courseID uint) (string, error) {
 	// 列宽
 	f.SetColWidth(sheet, "A", "F", 16)
 
-	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("课程统计_%s_%s.xlsx", stats.CourseName, time.Now().Format("20060102_150405")))
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("课程统计_%s_%s.xlsx", sanitizeFileName(stats.CourseName), time.Now().Format("20060102_150405")))
 	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
@@ -239,7 +240,7 @@ func ExportStudentStatsExcel(studentID uint) (string, error) {
 	footerRow := detailStart + len(grades) + 2
 	f.SetCellValue(sheet, cellName(1, footerRow), fmt.Sprintf("生成时间：%s", time.Now().Format("2006-01-02 15:04:05")))
 
-	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("学生统计_%s_%s.xlsx", student.Name, time.Now().Format("20060102_150405")))
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("学生统计_%s_%s.xlsx", sanitizeFileName(student.Name), time.Now().Format("20060102_150405")))
 	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
@@ -478,4 +479,34 @@ func ExportOperationLogsExcel() (string, error) {
 func cellName(col, row int) string {
 	name, _ := excelize.CoordinatesToCellName(col, row)
 	return name
+}
+
+// sanitizeFileName 清理文件名中的 Windows 保留字符与保留名称，避免导出保存失败
+func sanitizeFileName(name string) string {
+	replacer := strings.NewReplacer(
+		"\\", "_",
+		"/", "_",
+		":", "_",
+		"*", "_",
+		"?", "_",
+		"\"", "_",
+		"<", "_",
+		">", "_",
+		"|", "_",
+	)
+	s := strings.TrimSpace(replacer.Replace(name))
+	s = strings.Trim(s, " .")
+
+	upper := strings.ToUpper(s)
+	switch upper {
+	case "CON", "PRN", "AUX", "NUL",
+		"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+		"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9":
+		s = "_" + s
+	}
+
+	if s == "" {
+		s = "未命名"
+	}
+	return s
 }

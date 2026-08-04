@@ -82,7 +82,6 @@ function onFocus() {
       <span v-else-if="!open" class="ssel-placeholder">{{ placeholder }}</span>
       <input
         v-else
-        ref="inputRef"
         v-model="keyword"
         class="ssel-search"
         :placeholder="'输入关键词筛选...'"
