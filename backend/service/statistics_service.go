@@ -135,7 +135,11 @@ func GetStudentRanking() ([]model.StudentRanking, error) {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
 	repository.LoadAssociations(grades)
+	return rankStudents(grades), nil
+}
 
+// rankStudents 按学生分组计算总分、平均分、GPA 并按平均绩点降序排名
+func rankStudents(grades []model.Grade) []model.StudentRanking {
 	type studentData struct {
 		student    model.Student
 		totalScore float64
@@ -180,7 +184,7 @@ func GetStudentRanking() ([]model.StudentRanking, error) {
 		rankings[i].Rank = i + 1
 	}
 
-	return rankings, nil
+	return rankings
 }
 
 // GenerateStatisticsReport 生成文字版统计报表（标签格式，避免中文字符列对齐问题）
@@ -194,48 +198,25 @@ func GenerateStatisticsReport(term string) (string, error) {
 	}
 	sb.WriteString("========================================\n\n")
 
-	rankings, err := GetStudentRanking()
-	if err != nil {
-		return "", err
-	}
-
 	// 一、学生排名
+	var rankings []model.StudentRanking
+	var err error
 	if term != "" {
-		var filtered []model.StudentRanking
-		for _, r := range rankings {
-			var grades []model.Grade
-			config.DB.
-				Where("student_id = (SELECT id FROM students WHERE student_id = ?)", r.StudentID).
-				Where("course_id IN (SELECT id FROM courses WHERE term = ?)", term).
-				Find(&grades)
-			repository.LoadAssociations(grades)
-
-			if len(grades) == 0 {
-				continue
-			}
-
-			var totalScore float64
-			for _, g := range grades {
-				totalScore += g.Score
-			}
-
-			filtered = append(filtered, model.StudentRanking{
-				StudentName:  r.StudentName,
-				StudentID:    r.StudentID,
-				TotalScore:   totalScore,
-				AverageScore: totalScore / float64(len(grades)),
-				GPA:          utils.CalculateStudentGPA(grades),
-				CourseCount:  len(grades),
-			})
+		var grades []model.Grade
+		if err := config.DB.Model(&model.Grade{}).
+			Select("grades.*").
+			Joins("JOIN courses ON courses.id = grades.course_id").
+			Where("courses.term = ?", term).
+			Find(&grades).Error; err != nil {
+			return "", fmt.Errorf("查询学期成绩失败: %w", err)
 		}
-
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].GPA > filtered[j].GPA
-		})
-		for i := range filtered {
-			filtered[i].Rank = i + 1
+		repository.LoadAssociations(grades)
+		rankings = rankStudents(grades)
+	} else {
+		rankings, err = GetStudentRanking()
+		if err != nil {
+			return "", err
 		}
-		rankings = filtered
 	}
 
 	sb.WriteString("【一、学生综合排名（按平均绩点）】\n\n")

@@ -18,8 +18,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const backupRoot = "backup"
-
 // BackupByTerm 备份指定学期的全部成绩数据
 func BackupByTerm(term string) (string, error) {
 	if !IsAdmin() {
@@ -27,7 +25,7 @@ func BackupByTerm(term string) (string, error) {
 	}
 
 	timestamp := time.Now().Format("20060102_150405")
-	backupDir := filepath.Join(backupRoot, fmt.Sprintf("%s_%s", term, timestamp))
+	backupDir := filepath.Join(utils.BackupDir(), fmt.Sprintf("%s_%s", term, timestamp))
 
 	err := os.MkdirAll(backupDir, 0755)
 	if err != nil {
@@ -70,7 +68,7 @@ func BackupByCourse(term string, courseCode string) (string, error) {
 	}
 
 	timestamp := time.Now().Format("20060102_150405")
-	backupDir := filepath.Join(backupRoot, fmt.Sprintf("%s_%s_%s", courseCode, term, timestamp))
+	backupDir := filepath.Join(utils.BackupDir(), fmt.Sprintf("%s_%s_%s", courseCode, term, timestamp))
 
 	err := os.MkdirAll(backupDir, 0755)
 	if err != nil {
@@ -99,12 +97,12 @@ func ListBackups() ([]string, error) {
 		return nil, errors.New("仅管理员可查看备份")
 	}
 
-	_, err := os.Stat(backupRoot)
+	_, err := os.Stat(utils.BackupDir())
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
 
-	entries, err := os.ReadDir(backupRoot)
+	entries, err := os.ReadDir(utils.BackupDir())
 	if err != nil {
 		return nil, fmt.Errorf("读取备份目录失败: %w", err)
 	}
@@ -131,7 +129,7 @@ func RestoreFromBackup(backupName string) error {
 		return fmt.Errorf("备份名称不合法: %s", backupName)
 	}
 
-	backupDir := filepath.Join(backupRoot, backupName)
+	backupDir := filepath.Join(utils.BackupDir(), backupName)
 
 	info, err := os.Stat(backupDir)
 	if err != nil {
@@ -174,7 +172,7 @@ func RestoreFromBackup(backupName string) error {
 		}
 
 		// 确保目标目录存在
-		dstDir := filepath.Join("data", "grades", term)
+		dstDir := filepath.Join(utils.DataDir(), "grades", term)
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
 			return fmt.Errorf("创建目标目录失败: %w", err)
 		}

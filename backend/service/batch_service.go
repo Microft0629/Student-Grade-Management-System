@@ -120,34 +120,25 @@ type AggregatedGrade struct {
 // AggregateGrades 跨课程/跨学期的成绩数据汇总
 func AggregateGrades(term string, courseKeyword string) ([]AggregatedGrade, error) {
 	var grades []model.Grade
-	query := config.DB
+	query := config.DB.Model(&model.Grade{}).
+		Select("grades.*").
+		Joins("JOIN students ON students.id = grades.student_id").
+		Joins("JOIN courses ON courses.id = grades.course_id")
 
 	if term != "" {
 		query = query.Where("courses.term = ?", term)
 	}
 	if courseKeyword != "" {
-		query = query.Joins("JOIN courses ON courses.id = grades.course_id").
-			Where("courses.term = ? OR courses.course_name LIKE ?", term, "%"+courseKeyword+"%")
+		query = query.Where("courses.course_name LIKE ?", "%"+courseKeyword+"%")
 	}
 
-	// 简化查询：先获取全部再内存筛选
-	err := config.DB.Find(&grades).Error
-	if err != nil {
+	if err := query.Find(&grades).Error; err != nil {
 		return nil, fmt.Errorf("查询成绩失败: %w", err)
 	}
 	repository.LoadAssociations(grades)
 
-	var result []AggregatedGrade
+	result := make([]AggregatedGrade, 0, len(grades))
 	for _, grade := range grades {
-		// 学期筛选
-		if term != "" && grade.Course.Term != term {
-			continue
-		}
-		// 课程关键词筛选
-		if courseKeyword != "" && !contains(grade.Course.CourseName, courseKeyword) {
-			continue
-		}
-
 		result = append(result, AggregatedGrade{
 			StudentID:   grade.Student.StudentID,
 			StudentName: grade.Student.Name,
@@ -231,20 +222,4 @@ func ExportTranscript(term string) (string, error) {
 	sb.WriteString("========================================\n")
 
 	return sb.String(), nil
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		match := true
-		for j := 0; j < len(substr); j++ {
-			if s[i+j] != substr[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return true
-		}
-	}
-	return false
 }

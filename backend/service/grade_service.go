@@ -96,22 +96,14 @@ func UpdateGrade(id uint, newScore float64) error {
 		return err
 	}
 
-	// 查询全部成绩记录以获取待修改项（含关联信息）
-	grades, err := repository.GetAllGrades()
-	if err != nil {
-		return fmt.Errorf("查询成绩失败: %w", err)
-	}
-
-	var target *model.Grade
-	for i := range grades {
-		if grades[i].ID == id {
-			target = &grades[i]
-			break
-		}
-	}
-	if target == nil {
+	// 按 ID 查询待修改成绩（含关联信息）
+	var target model.Grade
+	if err := config.DB.First(&target, id).Error; err != nil {
 		return errors.New("成绩记录不存在")
 	}
+	loaded := []model.Grade{target}
+	repository.LoadAssociations(loaded)
+	target = loaded[0]
 
 	// 老师只能修改自己录入的成绩，管理员可修改全部
 	if !IsAdmin() && target.CreatorName != CurrentOperator() {
@@ -123,7 +115,7 @@ func UpdateGrade(id uint, newScore float64) error {
 	target.GradePoint = utils.CalculateGradePoint(newScore)
 
 	// 保存修改（通过直接使用 config.DB 保存，避免通过 repository 的局限）
-	err = updateGradeDirect(target)
+	err := updateGradeDirect(&target)
 	if err != nil {
 		return fmt.Errorf("更新成绩失败: %w", err)
 	}
@@ -152,17 +144,13 @@ func GetAllGrades() ([]model.Grade, error) {
 // DeleteGrade 删除指定成绩记录并同步更新 CSV 备份文件
 func DeleteGrade(id uint) error {
 	// 先查询待删除记录以便记录日志
-	grades, _ := repository.GetAllGrades()
-	var target *model.Grade
-	for i := range grades {
-		if grades[i].ID == id {
-			target = &grades[i]
-			break
-		}
-	}
-	if target == nil {
+	var target model.Grade
+	if err := config.DB.First(&target, id).Error; err != nil {
 		return errors.New("成绩记录不存在")
 	}
+	loaded := []model.Grade{target}
+	repository.LoadAssociations(loaded)
+	target = loaded[0]
 
 	// 老师只能删除自己录入的成绩，管理员可删除全部
 	if !IsAdmin() && target.CreatorName != CurrentOperator() {

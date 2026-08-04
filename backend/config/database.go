@@ -3,8 +3,10 @@ package config
 
 import (
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/utils"
 	"log"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
@@ -18,12 +20,12 @@ func InitDatabase() {
 	var err error
 
 	// 确保 database 目录存在
-	if err := os.MkdirAll("database", 0755); err != nil {
+	if err := os.MkdirAll(utils.DatabaseDir(), 0755); err != nil {
 		log.Fatal("创建数据库目录失败：", err)
 	}
 
 	DB, err = gorm.Open( // 建立 GORM 数据库连接
-		sqlite.Open("./database/student.db"),
+		sqlite.Open(filepath.Join(utils.DatabaseDir(), "student.db")),
 		&gorm.Config{},
 	)
 

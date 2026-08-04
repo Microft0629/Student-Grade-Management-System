@@ -4,18 +4,55 @@ package repository
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
-	"strings"
 )
 
-// LoadAssociations 手动加载成绩记录关联的学生和课程（替代 Preload，避免 GORM 关联推断问题）
+// LoadAssociations 批量加载成绩记录关联的学生和课程（两次 IN 查询，避免逐条查询）
 func LoadAssociations(grades []model.Grade) {
+	if len(grades) == 0 {
+		return
+	}
+
+	studentIDSet := make(map[uint]struct{})
+	courseIDSet := make(map[uint]struct{})
+	for _, grade := range grades {
+		studentIDSet[grade.StudentID] = struct{}{}
+		courseIDSet[grade.CourseID] = struct{}{}
+	}
+
+	studentIDs := make([]uint, 0, len(studentIDSet))
+	for id := range studentIDSet {
+		studentIDs = append(studentIDs, id)
+	}
+	courseIDs := make([]uint, 0, len(courseIDSet))
+	for id := range courseIDSet {
+		courseIDs = append(courseIDs, id)
+	}
+
+	studentMap := make(map[uint]model.Student, len(studentIDs))
+	if len(studentIDs) > 0 {
+		var students []model.Student
+		if err := config.DB.Where("id IN ?", studentIDs).Find(&students).Error; err == nil {
+			for _, student := range students {
+				studentMap[student.ID] = student
+			}
+		}
+	}
+
+	courseMap := make(map[uint]model.Course, len(courseIDs))
+	if len(courseIDs) > 0 {
+		var courses []model.Course
+		if err := config.DB.Where("id IN ?", courseIDs).Find(&courses).Error; err == nil {
+			for _, course := range courses {
+				courseMap[course.ID] = course
+			}
+		}
+	}
+
 	for i := range grades {
-		var student model.Student
-		if config.DB.First(&student, grades[i].StudentID).Error == nil {
+		if student, ok := studentMap[grades[i].StudentID]; ok {
 			grades[i].Student = student
 		}
-		var course model.Course
-		if config.DB.First(&course, grades[i].CourseID).Error == nil {
+		if course, ok := courseMap[grades[i].CourseID]; ok {
 			grades[i].Course = course
 		}
 	}
@@ -74,27 +111,25 @@ func SearchGrades(
 ) ([]model.Grade, error) {
 	var grades []model.Grade
 
-	err := config.DB.Find(&grades).Error
-	if err != nil {
+	query := config.DB.Model(&model.Grade{}).
+		Select("grades.*").
+		Joins("JOIN students ON students.id = grades.student_id").
+		Joins("JOIN courses ON courses.id = grades.course_id")
+
+	if studentKeyword != "" {
+		like := "%" + studentKeyword + "%"
+		query = query.Where("(students.name LIKE ? OR students.student_id LIKE ?)", like, like)
+	}
+	if courseKeyword != "" {
+		query = query.Where("courses.course_name LIKE ?", "%"+courseKeyword+"%")
+	}
+	if term != "" {
+		query = query.Where("courses.term = ?", term)
+	}
+
+	if err := query.Find(&grades).Error; err != nil {
 		return nil, err
 	}
 	LoadAssociations(grades)
-
-	var result []model.Grade
-
-	for _, grade := range grades {
-		matchStudent := studentKeyword == "" ||
-			strings.Contains(grade.Student.Name, studentKeyword) ||
-			strings.Contains(grade.Student.StudentID, studentKeyword)
-		matchCourse := courseKeyword == "" ||
-			strings.Contains(grade.Course.CourseName, courseKeyword)
-		matchTerm := term == "" ||
-			grade.Course.Term == term
-
-		if matchStudent && matchCourse && matchTerm {
-			result = append(result, grade)
-		}
-	}
-
-	return result, nil
+	return grades, nil
 }

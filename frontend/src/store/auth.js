@@ -12,7 +12,11 @@ export const useAuthStore = defineStore('auth', {
             this.user = user
             this.isLogin = true
             this.role = user.Role || 'teacher'
-            localStorage.setItem('user', JSON.stringify(user))
+            // 只持久化非敏感信息，避免把密码哈希等字段写入 localStorage
+            localStorage.setItem('user', JSON.stringify({
+                Username: user.Username,
+                Role: user.Role,
+            }))
         },
 
         logout() {
@@ -23,11 +27,19 @@ export const useAuthStore = defineStore('auth', {
         },
 
         loadUser() {
-            const user = localStorage.getItem('user')
-            if (user) {
-                this.user = JSON.parse(user)
+            try {
+                const raw = localStorage.getItem('user')
+                if (!raw) return
+                const saved = JSON.parse(raw)
+                if (!saved || !saved.Username) {
+                    localStorage.removeItem('user')
+                    return
+                }
+                this.user = saved
                 this.isLogin = true
-                this.role = this.user.Role || 'teacher'
+                this.role = saved.Role || 'teacher'
+            } catch (_) {
+                localStorage.removeItem('user')
             }
         },
 

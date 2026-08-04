@@ -4,25 +4,29 @@ package service
 import (
 	"Student-Grade-Management-System/backend/model"
 	"Student-Grade-Management-System/backend/repository"
+	"Student-Grade-Management-System/backend/utils"
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// ErrorLogPath 校验错误日志文件路径
-const ErrorLogPath = "data/error.log"
+// errorLogPath 校验错误日志文件路径
+func errorLogPath() string {
+	return filepath.Join(utils.DataDir(), "error.log")
+}
 
 // appendErrorLog 将校验错误追加写入错误日志文件
 func appendErrorLog(entry model.ErrorLog) error {
-	err := os.MkdirAll("data", 0755)
+	err := os.MkdirAll(utils.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(ErrorLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(errorLogPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -75,7 +79,7 @@ func LogValidationError(student, course string, score float64, reason string) {
 func ReadErrorLogs() ([]model.ErrorLog, error) {
 	var logs []model.ErrorLog
 
-	file, err := os.Open(ErrorLogPath)
+	file, err := os.Open(errorLogPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return logs, nil

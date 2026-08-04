@@ -3,23 +3,27 @@ package csv
 
 import (
 	"Student-Grade-Management-System/backend/model"
+	"Student-Grade-Management-System/backend/utils"
 	"encoding/csv"
 	"os"
+	"path/filepath"
 )
 
-// StudentCSVPath 学生数据 CSV 文件的存储路径
-const StudentCSVPath = "data/students.csv"
+// studentCSVPath 学生数据 CSV 文件的存储路径
+func studentCSVPath() string {
+	return filepath.Join(utils.DataDir(), "students.csv")
+}
 
 // SaveStudents 将学生列表数据导出并保存至 CSV 文件，包含表头及全部学生记录
 func SaveStudents(students []model.Student) error {
 	// 确保 data 目录存在，若不存在则创建，权限设为 0755
-	err := os.MkdirAll("data", 0755)
+	err := os.MkdirAll(utils.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
 	// 创建或覆盖目标 CSV 文件
-	file, err := os.Create(StudentCSVPath)
+	file, err := os.Create(studentCSVPath())
 	if err != nil {
 		return err
 	}
@@ -70,7 +74,7 @@ func LoadStudents() ([]model.Student, error) {
 	var students []model.Student
 
 	// 打开学生数据 CSV 文件
-	file, err := os.Open(StudentCSVPath)
+	file, err := os.Open(studentCSVPath())
 	if err != nil {
 		// 文件不存在时视为无数据，返回空列表而非错误
 		if os.IsNotExist(err) {

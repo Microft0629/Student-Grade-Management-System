@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-// GpaRulesPath 绩点换算规则文件路径
-const GpaRulesPath = "data/gpa_rules.txt"
+// gpaRulesPath 绩点换算规则文件路径
+func gpaRulesPath() string {
+	return filepath.Join(utils.DataDir(), "gpa_rules.txt")
+}
 
 // SaveGpaRules 将绩点换算公式保存至 TXT 文件
 func SaveGpaRules(formula string) error {
@@ -20,12 +23,12 @@ func SaveGpaRules(formula string) error {
 		return errors.New("仅管理员可修改绩点规则")
 	}
 
-	err := os.MkdirAll("data", 0755)
+	err := os.MkdirAll(utils.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Create(GpaRulesPath)
+	file, err := os.Create(gpaRulesPath())
 	if err != nil {
 		return err
 	}
@@ -37,7 +40,7 @@ func SaveGpaRules(formula string) error {
 
 // LoadGpaRules 从 TXT 文件读取绩点换算公式
 func LoadGpaRules() (string, error) {
-	data, err := os.ReadFile(GpaRulesPath)
+	data, err := os.ReadFile(gpaRulesPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil

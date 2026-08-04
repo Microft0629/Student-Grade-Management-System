@@ -2,6 +2,7 @@
 package csv
 
 import (
+	"Student-Grade-Management-System/backend/utils"
 	"encoding/csv"
 	"fmt"
 	"os"
@@ -23,7 +24,7 @@ func SaveCourseGrades(
 	grades []GradeCSV,
 ) error {
 	// 按学期创建成绩存储目录，不存在则自动创建
-	dir := filepath.Join("data", "grades", term)
+	dir := filepath.Join(utils.DataDir(), "grades", term)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
@@ -77,7 +78,7 @@ func SaveCourseGrades(
 func LoadCourseGrades(term, courseCode string) ([]GradeCSV, error) {
 	var grades []GradeCSV
 
-	filePath := filepath.Join("data", "grades", term, courseCode+".csv")
+	filePath := filepath.Join(utils.DataDir(), "grades", term, courseCode+".csv")
 
 	file, err := os.Open(filePath)
 	if err != nil {

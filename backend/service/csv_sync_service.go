@@ -4,6 +4,7 @@ package service
 import (
 	"Student-Grade-Management-System/backend/repository"
 	csvRepo "Student-Grade-Management-System/backend/repository/csv"
+	"Student-Grade-Management-System/backend/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,7 +90,7 @@ func SyncGradesToCSV() error {
 
 // removeStaleGradeFiles 删除 data/grades 下不在当前数据库成绩集合中的旧 CSV 文件
 func removeStaleGradeFiles(group map[string][]csvRepo.GradeCSV) error {
-	root := filepath.Join("data", "grades")
+	root := filepath.Join(utils.DataDir(), "grades")
 	termDirs, err := os.ReadDir(root)
 	if err != nil {
 		if os.IsNotExist(err) {

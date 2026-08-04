@@ -108,8 +108,8 @@ func ExportCourseStatsExcel(courseID uint) (string, error) {
 	// 列宽
 	f.SetColWidth(sheet, "A", "F", 16)
 
-	filePath := filepath.Join("export", fmt.Sprintf("课程统计_%s_%s.xlsx", stats.CourseName, time.Now().Format("20060102_150405")))
-	err = os.MkdirAll("export", 0755)
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("课程统计_%s_%s.xlsx", stats.CourseName, time.Now().Format("20060102_150405")))
+	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
 	}
@@ -239,8 +239,8 @@ func ExportStudentStatsExcel(studentID uint) (string, error) {
 	footerRow := detailStart + len(grades) + 2
 	f.SetCellValue(sheet, cellName(1, footerRow), fmt.Sprintf("生成时间：%s", time.Now().Format("2006-01-02 15:04:05")))
 
-	filePath := filepath.Join("export", fmt.Sprintf("学生统计_%s_%s.xlsx", student.Name, time.Now().Format("20060102_150405")))
-	err = os.MkdirAll("export", 0755)
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("学生统计_%s_%s.xlsx", student.Name, time.Now().Format("20060102_150405")))
+	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
 	}
@@ -384,8 +384,8 @@ func ExportTranscriptExcel(term string) (string, error) {
 	f.SetCellValue(sheet, cellName(1, row), fmt.Sprintf("打印时间：%s", time.Now().Format("2006-01-02 15:04:05")))
 	f.MergeCell(sheet, cellName(1, row), cellName(4, row))
 
-	filePath := filepath.Join("export", fmt.Sprintf("成绩单_%s.xlsx", time.Now().Format("20060102_150405")))
-	err = os.MkdirAll("export", 0755)
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("成绩单_%s.xlsx", time.Now().Format("20060102_150405")))
+	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
 	}
@@ -462,8 +462,8 @@ func ExportOperationLogsExcel() (string, error) {
 		f.SetColWidth(sheet, cellName(i+1, 1), cellName(i+1, 1), w)
 	}
 
-	filePath := filepath.Join("export", fmt.Sprintf("操作日志_%s.xlsx", time.Now().Format("20060102_150405")))
-	err = os.MkdirAll("export", 0755)
+	filePath := filepath.Join(utils.ExportDir(), fmt.Sprintf("操作日志_%s.xlsx", time.Now().Format("20060102_150405")))
+	err = os.MkdirAll(utils.ExportDir(), 0755)
 	if err != nil {
 		return "", err
 	}

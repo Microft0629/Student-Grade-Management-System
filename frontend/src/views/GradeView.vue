@@ -25,6 +25,15 @@ const students = ref([])
 const courses = ref([])
 const activeTab = ref('list')
 
+// 成绩列表客户端分页
+const gradePage = ref(1)
+const gradePageSize = 10
+const pagedGrades = computed(() => {
+  const start = (gradePage.value - 1) * gradePageSize
+  return grades.value.slice(start, start + gradePageSize)
+})
+const gradeTotalPages = computed(() => Math.max(1, Math.ceil(grades.value.length / gradePageSize)))
+
 // 新增/编辑
 const form = ref({ StudentID: 0, CourseID: 0, Score: 0 })
 const editId = ref(0)
@@ -61,6 +70,7 @@ const manageableCourses = computed(() => {
 })
 
 async function loadData() {
+  gradePage.value = 1
   grades.value = await GetAllGrades()
   students.value = await GetAllStudents()
   courses.value = await GetAllCourses()
@@ -104,6 +114,7 @@ async function handleDelete(id) {
 
 // 查询
 async function handleSearch() {
+  gradePage.value = 1
   grades.value = await SearchGrades(
     searchForm.value.StudentKeyword,
     searchForm.value.CourseKeyword,
@@ -112,6 +123,7 @@ async function handleSearch() {
 }
 async function handleReset() {
   searchForm.value = { StudentKeyword: '', CourseKeyword: '', Term: '' }
+  gradePage.value = 1
   await loadData()
 }
 
@@ -276,7 +288,7 @@ onMounted(() => { loadData() })
             </tr>
           </thead>
           <tbody>
-            <tr v-for="g in grades" :key="g.ID">
+            <tr v-for="g in pagedGrades" :key="g.ID">
               <td>{{ g.Student?.StudentID }}</td>
               <td>{{ g.Student?.Name }}</td>
               <td>{{ g.Course?.CourseName }}</td>
@@ -303,6 +315,11 @@ onMounted(() => { loadData() })
             </tr>
           </tbody>
         </table>
+        <div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px;">
+          <button class="btn-default btn-sm" :disabled="gradePage <= 1" @click="gradePage--">上一页</button>
+          <span style="font-size:13px;color:#666;">第 {{ gradePage }} / {{ gradeTotalPages }} 页（每页 {{ gradePageSize }} 条）</span>
+          <button class="btn-default btn-sm" :disabled="gradePage >= gradeTotalPages" @click="gradePage++">下一页</button>
+        </div>
       </div>
     </div>
 

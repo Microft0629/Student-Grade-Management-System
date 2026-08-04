@@ -2,6 +2,7 @@
 package csv
 
 import (
+	"Student-Grade-Management-System/backend/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ type GradeFileInfo struct {
 func ScanGradeFiles() ([]GradeFileInfo, error) {
 	var result []GradeFileInfo
 
-	root := filepath.Join("data", "grades")
+	root := filepath.Join(utils.DataDir(), "grades")
 	_, err := os.Stat(root)
 
 	// 目录不存在时返回空切片，不视为错误

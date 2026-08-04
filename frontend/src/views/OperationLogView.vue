@@ -1,6 +1,6 @@
 <!-- 操作日志页面 -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   GetAllOperationLogs, GetOperationLogsByTerm,
   GetOperationLogsByStudent, SearchOperationLogs,
@@ -18,13 +18,24 @@ const searchForm = ref({ Action: '', StudentID: '', Course: '', Term: '', StartT
 const termFilter = ref('')
 const studentFilter = ref('')
 
+// 操作日志客户端分页
+const logPage = ref(1)
+const logPageSize = 20
+const pagedLogs = computed(() => {
+  const start = (logPage.value - 1) * logPageSize
+  return logs.value.slice(start, start + logPageSize)
+})
+const logTotalPages = computed(() => Math.max(1, Math.ceil(logs.value.length / logPageSize)))
+
 async function loadLogs() {
+  logPage.value = 1
   try { logs.value = await GetAllOperationLogs() || [] } catch (_) { logs.value = [] }
 }
 async function loadErrorLogs() {
   try { errorLogs.value = await ReadErrorLogs() || [] } catch (_) { errorLogs.value = [] }
 }
 async function handleSearch() {
+  logPage.value = 1
   logs.value = await SearchOperationLogs(
     searchForm.value.Action, searchForm.value.StudentID,
     searchForm.value.Course, searchForm.value.Term,
@@ -32,10 +43,12 @@ async function handleSearch() {
   )
 }
 async function handleSearchByTerm() {
+  logPage.value = 1
   if (!termFilter.value) { await loadLogs(); return }
   logs.value = await GetOperationLogsByTerm(termFilter.value)
 }
 async function handleSearchByStudent() {
+  logPage.value = 1
   if (!studentFilter.value) { await loadLogs(); return }
   logs.value = await GetOperationLogsByStudent(studentFilter.value)
 }
@@ -48,6 +61,7 @@ async function handleExport() {
 
 function handleReset() {
   searchForm.value = { Action: '', StudentID: '', Course: '', Term: '', StartTime: '', EndTime: '' }
+  logPage.value = 1
   loadLogs()
 }
 
@@ -98,8 +112,8 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
           <input v-model="searchForm.StudentID" placeholder="学号" />
           <input v-model="searchForm.Course" placeholder="课程名称" />
           <input v-model="searchForm.Term" placeholder="学期" />
-          <input v-model="searchForm.StartTime" placeholder="开始日期" style="width:130px;" />
-          <input v-model="searchForm.EndTime" placeholder="结束日期" style="width:130px;" />
+          <input v-model="searchForm.StartTime" type="date" style="width:140px;" />
+          <input v-model="searchForm.EndTime" type="date" style="width:140px;" />
           <button class="btn-primary" @click="handleSearch">搜索</button>
           <button class="btn-default" @click="handleReset">重置</button>
         </div>
@@ -116,7 +130,7 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
             <tr><th>时间</th><th>操作人</th><th>操作</th><th>学号</th><th>学生</th><th>课程</th><th>学期</th><th class="col-center">旧分</th><th class="col-center">新分</th><th>详情</th></tr>
           </thead>
           <tbody>
-            <tr v-for="l in logs" :key="l.ID">
+            <tr v-for="l in pagedLogs" :key="l.ID">
               <td style="font-size:12px;">{{ formatTime(l.Time) }}</td>
               <td>{{ l.Operator }}</td>
               <td>
@@ -140,6 +154,11 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
             </tr>
           </tbody>
         </table>
+        <div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:16px;">
+          <button class="btn-default btn-sm" :disabled="logPage <= 1" @click="logPage--">上一页</button>
+          <span style="font-size:13px;color:#666;">第 {{ logPage }} / {{ logTotalPages }} 页（每页 {{ logPageSize }} 条）</span>
+          <button class="btn-default btn-sm" :disabled="logPage >= logTotalPages" @click="logPage++">下一页</button>
+        </div>
       </div>
     </div>
 
@@ -151,7 +170,7 @@ onMounted(() => { loadLogs(); loadErrorLogs() })
         <thead><tr><th>时间</th><th>学生</th><th>课程</th><th>分数</th><th>原因</th></tr></thead>
         <tbody>
           <tr v-for="(e, i) in errorLogs" :key="i">
-            <td style="font-size:12px;">{{ e.Time }}</td>
+            <td style="font-size:12px;">{{ formatTime(e.Time) }}</td>
             <td>{{ e.Student }}</td>
             <td>{{ e.Course }}</td>
             <td>{{ e.Score }}</td>
