@@ -3,7 +3,6 @@ package api
 
 import (
 	"Student-Grade-Management-System/backend/service"
-	"errors"
 	"os/exec"
 	"runtime"
 )
@@ -18,6 +17,9 @@ func NewExcelAPI() *ExcelAPI {
 
 // ExportCourseStats 导出单课程统计 Excel 文件并打开，返回文件路径
 func (e *ExcelAPI) ExportCourseStats(courseID uint) (string, error) {
+	if err := service.RequireLogin(); err != nil {
+		return "", err
+	}
 	path, err := service.ExportCourseStatsExcel(courseID)
 	if err != nil {
 		return "", err
@@ -28,6 +30,9 @@ func (e *ExcelAPI) ExportCourseStats(courseID uint) (string, error) {
 
 // ExportStudentStats 导出单学生统计 Excel 文件并打开，返回文件路径
 func (e *ExcelAPI) ExportStudentStats(studentID uint) (string, error) {
+	if err := service.RequireLogin(); err != nil {
+		return "", err
+	}
 	path, err := service.ExportStudentStatsExcel(studentID)
 	if err != nil {
 		return "", err
@@ -38,6 +43,9 @@ func (e *ExcelAPI) ExportStudentStats(studentID uint) (string, error) {
 
 // ExportTranscript 导出标准化成绩单 Excel 文件并打开，返回文件路径
 func (e *ExcelAPI) ExportTranscript(term string) (string, error) {
+	if err := service.RequireLogin(); err != nil {
+		return "", err
+	}
 	path, err := service.ExportTranscriptExcel(term)
 	if err != nil {
 		return "", err
@@ -48,8 +56,8 @@ func (e *ExcelAPI) ExportTranscript(term string) (string, error) {
 
 // ExportOperationLogs 导出操作日志 Excel 文件并打开，返回文件路径
 func (e *ExcelAPI) ExportOperationLogs() (string, error) {
-	if !service.IsAdmin() {
-		return "", errors.New("仅管理员可导出操作日志")
+	if err := service.RequireAdmin(); err != nil {
+		return "", err
 	}
 	path, err := service.ExportOperationLogsExcel()
 	if err != nil {

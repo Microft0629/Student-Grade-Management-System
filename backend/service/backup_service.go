@@ -44,7 +44,7 @@ func BackupByTerm(term string) (string, error) {
 			continue
 		}
 
-		srcPath := filepath.Join("data", "grades", f.Term, f.CourseCode+".csv")
+		srcPath := filepath.Join(utils.DataDir(), "grades", f.Term, f.CourseCode+".csv")
 		dstPath := filepath.Join(backupDir, f.CourseCode+".csv")
 
 		err = copyFile(srcPath, dstPath)
@@ -75,7 +75,7 @@ func BackupByCourse(term string, courseCode string) (string, error) {
 		return "", fmt.Errorf("创建备份目录失败: %w", err)
 	}
 
-	srcPath := filepath.Join("data", "grades", term, courseCode+".csv")
+	srcPath := filepath.Join(utils.DataDir(), "grades", term, courseCode+".csv")
 	dstPath := filepath.Join(backupDir, courseCode+".csv")
 
 	// 检查源文件是否存在

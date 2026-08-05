@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import MainLayout from '../layout/MainLayout.vue'
 import LoginView from '../views/LoginView.vue'
+import ChangePasswordView from '../views/ChangePasswordView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import StudentView from '../views/StudentView.vue'
 import CourseView from '../views/CourseView.vue'
@@ -30,6 +31,7 @@ const routes = [
             { path: 'datamgmt',   component: DataManagementView },
             { path: 'logs',       component: OperationLogView },
             { path: 'users',      component: UserManagementView },
+            { path: 'password',   component: ChangePasswordView },
         ],
     },
 ]
@@ -44,6 +46,11 @@ router.beforeEach((to, from, next) => {
     authStore.loadUser()
     if (to.path.startsWith('/main') && !authStore.isLogin) {
         next('/')
+        return
+    }
+    // 首次登录强制改密
+    if (authStore.isLogin && authStore.user?.MustChangePassword && to.path !== '/main/password') {
+        next('/main/password')
         return
     }
     // 管理员专属路由：数据管理、操作日志、用户管理

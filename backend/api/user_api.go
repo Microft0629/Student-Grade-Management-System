@@ -16,20 +16,32 @@ func NewUserAPI() *UserAPI {
 
 // CreateTeacher 管理员创建老师账号
 func (u *UserAPI) CreateTeacher(username string, password string) error {
+	if err := service.RequireAdmin(); err != nil {
+		return err
+	}
 	return service.CreateTeacher(username, password)
 }
 
 // DeleteUser 管理员删除老师账号
 func (u *UserAPI) DeleteUser(username string) error {
+	if err := service.RequireAdmin(); err != nil {
+		return err
+	}
 	return service.DeleteUser(username)
 }
 
 // GetAllTeachers 获取所有老师账号列表
-func (u *UserAPI) GetAllTeachers() ([]model.User, error) {
+func (u *UserAPI) GetAllTeachers() ([]model.UserInfo, error) {
+	if err := service.RequireAdmin(); err != nil {
+		return nil, err
+	}
 	return service.GetAllTeachers()
 }
 
 // ChangePassword 修改当前用户密码
 func (u *UserAPI) ChangePassword(oldPwd string, newPwd string) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.ChangePassword(oldPwd, newPwd)
 }

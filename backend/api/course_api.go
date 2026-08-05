@@ -16,20 +16,32 @@ func NewCourseAPI() *CourseAPI {
 
 // CreateCourse 对外提供创建课程的 API 接口，调用业务逻辑层处理
 func (c *CourseAPI) CreateCourse(course model.Course) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.CreateCourse(&course)
 }
 
 // GetAllCourses 对外提供获取所有课程信息的 API 接口
 func (c *CourseAPI) GetAllCourses() ([]model.Course, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetAllCourses()
 }
 
 // DeleteCourse 对外提供根据 ID 删除课程的 API 接口
 func (c *CourseAPI) DeleteCourse(id uint) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.DeleteCourse(id)
 }
 
 // SearchCourses 对外提供搜索课程的 API 接口
 func (c *CourseAPI) SearchCourses(keyword string) ([]model.Course, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.SearchCourses(keyword)
 }

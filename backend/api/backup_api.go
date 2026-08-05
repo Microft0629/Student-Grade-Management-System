@@ -13,20 +13,32 @@ func NewBackupAPI() *BackupAPI {
 
 // BackupByTerm 按学期备份成绩数据
 func (b *BackupAPI) BackupByTerm(term string) (string, error) {
+	if err := service.RequireAdmin(); err != nil {
+		return "", err
+	}
 	return service.BackupByTerm(term)
 }
 
 // BackupByCourse 按课程备份成绩数据
 func (b *BackupAPI) BackupByCourse(term string, courseCode string) (string, error) {
+	if err := service.RequireAdmin(); err != nil {
+		return "", err
+	}
 	return service.BackupByCourse(term, courseCode)
 }
 
 // ListBackups 列出所有备份
 func (b *BackupAPI) ListBackups() ([]string, error) {
+	if err := service.RequireAdmin(); err != nil {
+		return nil, err
+	}
 	return service.ListBackups()
 }
 
 // RestoreFromBackup 从备份恢复数据
 func (b *BackupAPI) RestoreFromBackup(backupName string) error {
+	if err := service.RequireAdmin(); err != nil {
+		return err
+	}
 	return service.RestoreFromBackup(backupName)
 }

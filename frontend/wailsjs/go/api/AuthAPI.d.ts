@@ -4,4 +4,6 @@ import {model} from '../models';
 
 export function GetCurrentUserRole():Promise<string>;
 
-export function Login(arg1:string,arg2:string):Promise<model.User>;
+export function Login(arg1:string,arg2:string):Promise<model.UserInfo>;
+
+export function Logout():Promise<void>;

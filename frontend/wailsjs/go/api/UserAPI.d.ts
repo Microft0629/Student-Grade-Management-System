@@ -8,4 +8,4 @@ export function CreateTeacher(arg1:string,arg2:string):Promise<void>;
 
 export function DeleteUser(arg1:string):Promise<void>;
 
-export function GetAllTeachers():Promise<Array<model.User>>;
+export function GetAllTeachers():Promise<Array<model.UserInfo>>;

@@ -15,8 +15,8 @@ import (
 // CreateGrade 根据分数计算绩点，并调用数据访问层创建成绩记录
 func CreateGrade(grade *model.Grade) error {
 	// 必须登录后才能操作
-	if GetCurrentUser() == nil {
-		return errors.New("未登录")
+	if err := RequireLogin(); err != nil {
+		return err
 	}
 
 	// 学生校验
@@ -194,6 +194,10 @@ func SearchGrades(
 
 // BatchImportGrades 批量导入成绩，校验失败不写入并提示错误原因
 func BatchImportGrades(grades []model.Grade) (int, []string, error) {
+	if err := RequireLogin(); err != nil {
+		return 0, nil, err
+	}
+
 	var errors_ []string
 	successCount := 0
 

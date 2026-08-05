@@ -16,21 +16,33 @@ func NewStudentAPI() *StudentAPI {
 
 // CreateStudent 对外提供创建学生的 API 接口，调用业务逻辑层处理
 func (s *StudentAPI) CreateStudent(student model.Student) error {
+	if err := service.RequireAdmin(); err != nil {
+		return err
+	}
 	return service.CreateStudent(&student)
 }
 
 // GetAllStudents 对外提供获取所有学生信息的 API 接口
 func (s *StudentAPI) GetAllStudents() ([]model.Student, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetAllStudents()
 }
 
 // DeleteStudent 对外提供根据 ID 删除学生的 API 接口
 func (s *StudentAPI) DeleteStudent(id uint) error {
+	if err := service.RequireAdmin(); err != nil {
+		return err
+	}
 	return service.DeleteStudent(id)
 }
 
 // SearchStudents 根据关键词搜索学生信息的 API 接口
 func (s *StudentAPI) SearchStudents(keyword string) ([]model.Student, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.SearchStudents(keyword)
 }
 
@@ -39,5 +51,8 @@ func (s *StudentAPI) GetStudentsByPage(page int, pageSize int) (
 	model.StudentPageResult,
 	error,
 ) {
+	if err := service.RequireLogin(); err != nil {
+		return model.StudentPageResult{}, err
+	}
 	return service.GetStudentsByPage(page, pageSize)
 }

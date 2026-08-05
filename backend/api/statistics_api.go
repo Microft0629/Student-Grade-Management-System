@@ -19,20 +19,32 @@ func (s *StatisticsAPI) GetStudentStatistics() (
 	[]model.StudentStatistics,
 	error,
 ) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetStudentStatistics()
 }
 
 // GetCourseStatistics 获取单课程统计（平均分、及格率、分数段分布）
 func (s *StatisticsAPI) GetCourseStatistics(courseID uint) (*model.CourseStatistics, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetCourseStatistics(courseID)
 }
 
 // GetStudentRanking 获取学生排名（按平均绩点降序）
 func (s *StatisticsAPI) GetStudentRanking() ([]model.StudentRanking, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetStudentRanking()
 }
 
 // GenerateStatisticsReport 生成文字版统计报表
 func (s *StatisticsAPI) GenerateStatisticsReport(term string) (string, error) {
+	if err := service.RequireLogin(); err != nil {
+		return "", err
+	}
 	return service.GenerateStatisticsReport(term)
 }

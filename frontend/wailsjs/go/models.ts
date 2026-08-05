@@ -287,6 +287,24 @@ export namespace model {
 	        this.CourseCount = source["CourseCount"];
 	    }
 	}
+	export class UserInfo {
+	    ID: number;
+	    Username: string;
+	    Role: string;
+	    MustChangePassword: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new UserInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ID = source["ID"];
+	        this.Username = source["Username"];
+	        this.Role = source["Role"];
+	        this.MustChangePassword = source["MustChangePassword"];
+	    }
+	}
 	export class User {
 	    ID: number;
 	    Username: string;
@@ -350,4 +368,3 @@ export namespace service {
 	}
 
 }
-

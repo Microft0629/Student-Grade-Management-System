@@ -16,7 +16,20 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('user', JSON.stringify({
                 Username: user.Username,
                 Role: user.Role,
+                MustChangePassword: !!user.MustChangePassword,
             }))
+        },
+
+        markPasswordChanged() {
+            if (!this.user) return
+            this.user.MustChangePassword = false
+            if (this.isLogin) {
+                localStorage.setItem('user', JSON.stringify({
+                    Username: this.user.Username,
+                    Role: this.user.Role,
+                    MustChangePassword: false,
+                }))
+            }
         },
 
         logout() {
@@ -38,6 +51,7 @@ export const useAuthStore = defineStore('auth', {
                 this.user = saved
                 this.isLogin = true
                 this.role = saved.Role || 'teacher'
+                this.user.MustChangePassword = !!saved.MustChangePassword
             } catch (_) {
                 localStorage.removeItem('user')
             }

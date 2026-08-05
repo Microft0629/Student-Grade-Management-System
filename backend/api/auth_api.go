@@ -15,7 +15,7 @@ func NewAuthAPI() *AuthAPI {
 func (a *AuthAPI) Login(
 	username string,
 	password string,
-) (*model.User, error) {
+) (*model.UserInfo, error) {
 
 	req := model.LoginRequest{
 		Username: username,
@@ -28,6 +28,12 @@ func (a *AuthAPI) Login(
 	}
 	service.SetCurrentUser(user)
 	return user, nil
+}
+
+// Logout 退出登录，清空后端会话
+func (a *AuthAPI) Logout() error {
+	service.Logout()
+	return nil
 }
 
 // GetCurrentUserRole 获取当前登录用户的角色

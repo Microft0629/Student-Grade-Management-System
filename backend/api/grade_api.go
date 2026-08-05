@@ -16,21 +16,33 @@ func NewGradeAPI() *GradeAPI {
 
 // CreateGrade 对外提供录入成绩的 API 接口，调用业务逻辑层处理（含绩点计算）
 func (g *GradeAPI) CreateGrade(grade model.Grade) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.CreateGrade(&grade)
 }
 
 // UpdateGrade 对外提供修改成绩的 API 接口
 func (g *GradeAPI) UpdateGrade(id uint, newScore float64) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.UpdateGrade(id, newScore)
 }
 
 // GetAllGrades 对外提供获取所有成绩及关联信息的 API 接口
 func (g *GradeAPI) GetAllGrades() ([]model.Grade, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.GetAllGrades()
 }
 
 // DeleteGrade 对外提供根据 ID 删除成绩记录的 API 接口
 func (g *GradeAPI) DeleteGrade(id uint) error {
+	if err := service.RequireLogin(); err != nil {
+		return err
+	}
 	return service.DeleteGrade(id)
 }
 
@@ -40,6 +52,9 @@ func (g *GradeAPI) SearchGrades(
 	courseKeyword string,
 	term string,
 ) ([]model.Grade, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.SearchGrades(
 		studentKeyword,
 		courseKeyword,
@@ -49,15 +64,24 @@ func (g *GradeAPI) SearchGrades(
 
 // BatchImportGrades 对外提供批量导入成绩的 API 接口，返回成功数和错误列表
 func (g *GradeAPI) BatchImportGrades(grades []model.Grade) (int, []string, error) {
+	if err := service.RequireLogin(); err != nil {
+		return 0, nil, err
+	}
 	return service.BatchImportGrades(grades)
 }
 
 // BatchAdjustScores 按课程+分数段批量加减分调整
 func (g *GradeAPI) BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*service.BatchAdjustResult, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.BatchAdjustScores(courseID, minScore, maxScore, delta)
 }
 
 // AggregateGrades 跨课程/跨学期成绩汇总
 func (g *GradeAPI) AggregateGrades(term string, courseKeyword string) ([]service.AggregatedGrade, error) {
+	if err := service.RequireLogin(); err != nil {
+		return nil, err
+	}
 	return service.AggregateGrades(term, courseKeyword)
 }

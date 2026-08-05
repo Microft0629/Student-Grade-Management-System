@@ -9,3 +9,7 @@ export function GetCurrentUserRole() {
 export function Login(arg1, arg2) {
   return window['go']['api']['AuthAPI']['Login'](arg1, arg2);
 }
+
+export function Logout() {
+  return window['go']['api']['AuthAPI']['Logout']();
+}

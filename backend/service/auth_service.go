@@ -9,7 +9,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(req model.LoginRequest) (*model.User, error) {
+// Login 校验用户名密码，返回不含密码哈希的用户信息
+func Login(req model.LoginRequest) (*model.UserInfo, error) {
 	var user model.User
 	// 查数据库，寻找用户
 	result := config.DB.
@@ -28,6 +29,16 @@ func Login(req model.LoginRequest) (*model.User, error) {
 	if err != nil {
 		return nil, errors.New("密码错误")
 	}
-	// 返回用户信息
-	return &user, nil
+	// 返回不含密码哈希的用户信息
+	return &model.UserInfo{
+		ID:                 user.ID,
+		Username:           user.Username,
+		Role:               user.Role,
+		MustChangePassword: user.MustChangePassword,
+	}, nil
+}
+
+// Logout 退出登录，清空当前会话
+func Logout() {
+	ClearCurrentUser()
 }

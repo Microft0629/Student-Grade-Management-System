@@ -19,6 +19,10 @@ type BatchAdjustResult struct {
 
 // BatchAdjustScores 按课程+分数段对成绩进行批量加减分调整
 func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta float64) (*BatchAdjustResult, error) {
+	if err := RequireLogin(); err != nil {
+		return nil, err
+	}
+
 	// 课程必须存在
 	course, err := repository.GetCourseByID(courseID)
 	if err != nil {

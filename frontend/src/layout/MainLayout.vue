@@ -4,6 +4,7 @@
     import { useAuthStore } from '../store/auth'
     import { computed, onMounted } from 'vue'
     import { WindowGetSize, WindowSetSize, WindowGetPosition, WindowSetPosition } from '../../wailsjs/runtime/runtime'
+    import { Logout } from '../../wailsjs/go/api/AuthAPI'
 
     const router = useRouter()
     const route = useRoute()
@@ -64,9 +65,14 @@
         return route.path === path
     }
 
-    function handleLogout() {
+    async function handleLogout() {
+        try {
+            await Logout()
+        } catch (_) {
+            // 即使后端会话清理失败，也继续清理前端状态
+        }
         authStore.logout()
-        router.push('/')
+        await router.push('/')
     }
 </script>
 
@@ -96,6 +102,7 @@
                     <span class="user-avatar">👤</span>
                     <span class="user-name">{{ authStore.user?.Username }}</span>
                 </div>
+                <button class="logout-btn" style="margin-bottom:8px;" @click="router.push('/main/password')">修改密码</button>
                 <button class="logout-btn" @click="handleLogout">退出登录</button>
             </div>
         </div>

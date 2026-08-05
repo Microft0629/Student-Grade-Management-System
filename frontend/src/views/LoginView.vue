@@ -22,7 +22,7 @@
     try {
       const user = await Login(username.value, password.value)
       authStore.setUser(user)
-      await router.push('/main/dashboard')
+      await router.push(user.MustChangePassword ? '/main/password' : '/main/dashboard')
     } catch (err) {
       await notify.error(String(err))
     } finally {
@@ -63,7 +63,6 @@
         </button>
       </div>
 
-      <div class="login-hint">默认账号：admin / 12345678</div>
     </div>
   </div>
 </template>
@@ -147,10 +146,4 @@
 }
 .login-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.login-hint {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 12px;
-  color: #bbb;
-}
 </style>

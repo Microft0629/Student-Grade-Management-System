@@ -68,9 +68,10 @@ func CreateDefaultAdmin() {
 	}
 
 	admin := model.User{
-		Username: "admin",
-		Password: string(password),
-		Role:     "admin",
+		Username:           "admin",
+		Password:           string(password),
+		Role:               "admin",
+		MustChangePassword: true,
 	}
 
 	if err := DB.Create(&admin).Error; err != nil {

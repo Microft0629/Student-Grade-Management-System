@@ -42,9 +42,10 @@ func CreateTeacher(username string, password string) error {
 	}
 
 	user := model.User{
-		Username: username,
-		Password: string(hashed),
-		Role:     "teacher",
+		Username:           username,
+		Password:           string(hashed),
+		Role:               "teacher",
+		MustChangePassword: true,
 	}
 	if err := config.DB.Create(&user).Error; err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
@@ -78,15 +79,27 @@ func DeleteUser(username string) error {
 	return config.DB.Where("username = ? AND role = ?", username, "teacher").Delete(&model.User{}).Error
 }
 
-// GetAllTeachers 获取所有老师账号
-func GetAllTeachers() ([]model.User, error) {
+// GetAllTeachers 获取所有老师账号（不含密码哈希）
+func GetAllTeachers() ([]model.UserInfo, error) {
 	if !IsAdmin() {
 		return nil, errors.New("仅管理员可查看老师账号")
 	}
 
 	var users []model.User
 	err := config.DB.Where("role = ?", "teacher").Find(&users).Error
-	return users, err
+	if err != nil {
+		return nil, err
+	}
+	infos := make([]model.UserInfo, 0, len(users))
+	for _, u := range users {
+		infos = append(infos, model.UserInfo{
+			ID:                 u.ID,
+			Username:           u.Username,
+			Role:               u.Role,
+			MustChangePassword: u.MustChangePassword,
+		})
+	}
+	return infos, nil
 }
 
 // ChangePassword 修改当前用户密码
@@ -98,11 +111,24 @@ func ChangePassword(oldPwd string, newPwd string) error {
 	if err := validatePassword(newPwd); err != nil {
 		return err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(oldPwd)); err != nil {
+
+	// 会话中不保存密码哈希，需要时从数据库读取
+	var user model.User
+	if err := config.DB.First(&user, u.ID).Error; err != nil {
+		return errors.New("用户不存在")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPwd)); err != nil {
 		return errors.New("旧密码错误")
 	}
-	hashed, _ := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
-	return config.DB.Model(&model.User{}).Where("id = ?", u.ID).Update("password", string(hashed)).Error
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("密码加密失败")
+	}
+	return config.DB.Model(&model.User{}).Where("id = ?", u.ID).
+		Updates(map[string]interface{}{
+			"password":             string(hashed),
+			"must_change_password": false,
+		}).Error
 }
 
 // validatePassword 校验密码长度 8-12 位
