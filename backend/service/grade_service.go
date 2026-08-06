@@ -87,7 +87,9 @@ func CreateGrade(grade *model.Grade) error {
 	// 记录操作日志（需查询关联学生和课程信息）
 	logCreateOperation(grade)
 
-	return SyncGradesToCSV()
+	// 数据库写入成功后，同步刷新成绩 CSV；同步失败只告警
+	logSyncError("新增成绩", SyncGradesToCSV())
+	return nil
 }
 
 // UpdateGrade 修改已有成绩记录并重新计算绩点
@@ -133,7 +135,8 @@ func UpdateGrade(id uint, newScore float64) error {
 		Detail:    fmt.Sprintf("分数由 %.1f 修改为 %.1f", oldScore, newScore),
 	})
 
-	return SyncGradesToCSV()
+	logSyncError("修改成绩", SyncGradesToCSV())
+	return nil
 }
 
 // GetAllGrades 获取所有包含关联信息的成绩记录
@@ -175,8 +178,9 @@ func DeleteGrade(id uint) error {
 		Detail:    "删除成绩记录",
 	})
 
-	// 数据库删除成功后，重新同步全量成绩到 CSV 以保持数据一致
-	return SyncGradesToCSV()
+	// 数据库删除成功后，重新同步全量成绩到 CSV 以保持数据一致；同步失败只告警
+	logSyncError("删除成绩", SyncGradesToCSV())
+	return nil
 }
 
 // SearchGrades 查询成绩
@@ -190,6 +194,17 @@ func SearchGrades(
 		courseKeyword,
 		term,
 	)
+}
+
+// GetGradesByPage 分页查询成绩（含多条件筛选）
+func GetGradesByPage(
+	studentKeyword string,
+	courseKeyword string,
+	term string,
+	page int,
+	pageSize int,
+) (model.GradePageResult, error) {
+	return repository.SearchGradesPaged(studentKeyword, courseKeyword, term, page, pageSize)
 }
 
 // BatchImportGrades 批量导入成绩，校验失败不写入并提示错误原因
@@ -262,10 +277,8 @@ func BatchImportGrades(grades []model.Grade) (int, []string, error) {
 			Detail: fmt.Sprintf("批量导入成功 %d 条，失败 %d 条", successCount, len(errors_)),
 		})
 
-		err := SyncGradesToCSV()
-		if err != nil {
-			return successCount, errors_, fmt.Errorf("同步CSV失败: %w", err)
-		}
+		// 数据库写入成功后同步 CSV；同步失败只告警，不影响导入结果
+		logSyncError("批量导入", SyncGradesToCSV())
 	}
 
 	return successCount, errors_, nil

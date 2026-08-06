@@ -85,10 +85,8 @@ func RecalculateAllGPA() (int, error) {
 	}
 
 	if count > 0 {
-		err = SyncGradesToCSV()
-		if err != nil {
-			return count, fmt.Errorf("同步CSV失败: %w", err)
-		}
+		// 数据库写入成功后同步 CSV；同步失败只告警，不影响重算结果
+		logSyncError("重算绩点", SyncGradesToCSV())
 	}
 
 	return count, nil

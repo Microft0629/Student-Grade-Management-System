@@ -26,6 +26,10 @@ export function GetAllGrades() {
   return window['go']['api']['GradeAPI']['GetAllGrades']();
 }
 
+export function GetGradesByPage(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['api']['GradeAPI']['GetGradesByPage'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function SearchGrades(arg1, arg2, arg3) {
   return window['go']['api']['GradeAPI']['SearchGrades'](arg1, arg2, arg3);
 }

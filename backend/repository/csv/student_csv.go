@@ -16,57 +16,33 @@ func studentCSVPath() string {
 
 // SaveStudents 将学生列表数据导出并保存至 CSV 文件，包含表头及全部学生记录
 func SaveStudents(students []model.Student) error {
-	// 确保 data 目录存在，若不存在则创建，权限设为 0755
-	err := os.MkdirAll(utils.DataDir(), 0755)
-	if err != nil {
-		return err
-	}
+	return writeCSVAtomic(studentCSVPath(), func(file *os.File) error {
+		writer := csv.NewWriter(file)
 
-	// 创建或覆盖目标 CSV 文件
-	file, err := os.Create(studentCSVPath())
-	if err != nil {
-		return err
-	}
-
-	// 关闭文件失败时仅忽略，避免覆盖主流程错误
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-		}
-	}(file)
-
-	writer := csv.NewWriter(file) // 初始化 CSV 写入器
-	defer writer.Flush()          // 确保函数返回前将缓冲区数据刷新至文件
-
-	// 写入 CSV 表头字段
-	err = writer.Write([]string{
-		"StudentID",
-		"Name",
-		"Gender",
-		"ClassName",
-		"Major",
-	})
-	if err != nil {
-		return err
-	}
-
-	// 遍历学生列表，逐条转换为字符串记录并写入 CSV
-	for _, student := range students {
-		record := []string{
-			student.StudentID,
-			student.Name,
-			student.Gender,
-			student.ClassName,
-			student.Major,
-		}
-
-		err = writer.Write(record)
-		if err != nil {
+		if err := writer.Write([]string{
+			"StudentID",
+			"Name",
+			"Gender",
+			"ClassName",
+			"Major",
+		}); err != nil {
 			return err
 		}
-	}
 
-	return nil
+		for _, student := range students {
+			if err := writer.Write([]string{
+				student.StudentID,
+				student.Name,
+				student.Gender,
+				student.ClassName,
+				student.Major,
+			}); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	})
 }
 
 // LoadStudents 从 CSV 文件中加载学生数据，若文件不存在则返回空列表

@@ -4,6 +4,8 @@ package repository
 import (
 	"Student-Grade-Management-System/backend/config"
 	"Student-Grade-Management-System/backend/model"
+
+	"gorm.io/gorm"
 )
 
 // LoadAssociations 批量加载成绩记录关联的学生和课程（两次 IN 查询，避免逐条查询）
@@ -111,8 +113,65 @@ func SearchGrades(
 ) ([]model.Grade, error) {
 	var grades []model.Grade
 
-	query := config.DB.Model(&model.Grade{}).
+	query := gradeFilterQuery(config.DB, studentKeyword, courseKeyword, term).Select("grades.*")
+
+	if err := query.Find(&grades).Error; err != nil {
+		return nil, err
+	}
+	LoadAssociations(grades)
+	return grades, nil
+}
+
+// SearchGradesPaged 多条件分页查询成绩
+func SearchGradesPaged(
+	studentKeyword string,
+	courseKeyword string,
+	term string,
+	page int,
+	pageSize int,
+) (model.GradePageResult, error) {
+	var result model.GradePageResult
+
+	// 防御性校验：页码最小为1，每页条数限制在 1-100
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	var total int64
+	if err := gradeFilterQuery(config.DB, studentKeyword, courseKeyword, term).
+		Count(&total).Error; err != nil {
+		return result, err
+	}
+
+	var grades []model.Grade
+	if err := gradeFilterQuery(config.DB, studentKeyword, courseKeyword, term).
 		Select("grades.*").
+		Order("grades.id DESC").
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Find(&grades).Error; err != nil {
+		return result, err
+	}
+	LoadAssociations(grades)
+
+	result = model.GradePageResult{
+		List:     grades,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	return result, nil
+}
+
+// gradeFilterQuery 构造按学生/课程/学期筛选的成绩查询
+func gradeFilterQuery(query *gorm.DB, studentKeyword, courseKeyword, term string) *gorm.DB {
+	query = query.Model(&model.Grade{}).
 		Joins("JOIN students ON students.id = grades.student_id").
 		Joins("JOIN courses ON courses.id = grades.course_id")
 
@@ -126,10 +185,5 @@ func SearchGrades(
 	if term != "" {
 		query = query.Where("courses.term = ?", term)
 	}
-
-	if err := query.Find(&grades).Error; err != nil {
-		return nil, err
-	}
-	LoadAssociations(grades)
-	return grades, nil
+	return query
 }

@@ -62,6 +62,14 @@ func (g *GradeAPI) SearchGrades(
 	)
 }
 
+// GetGradesByPage 分页查询成绩（含多条件筛选）
+func (g *GradeAPI) GetGradesByPage(studentKeyword string, courseKeyword string, term string, page int, pageSize int) (model.GradePageResult, error) {
+	if err := service.RequireLogin(); err != nil {
+		return model.GradePageResult{}, err
+	}
+	return service.GetGradesByPage(studentKeyword, courseKeyword, term, page, pageSize)
+}
+
 // BatchImportGrades 对外提供批量导入成绩的 API 接口，返回成功数和错误列表
 func (g *GradeAPI) BatchImportGrades(grades []model.Grade) (int, []string, error) {
 	if err := service.RequireLogin(); err != nil {

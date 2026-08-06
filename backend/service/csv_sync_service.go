@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+// logSyncError 记录 CSV 同步失败告警。
+// 数据库写入已成功，CSV 同步失败不应让调用方误以为操作失败。
+func logSyncError(step string, err error) {
+	if err != nil {
+		println("CSV同步失败["+step+"]:", err.Error())
+	}
+}
+
 // SyncStudentsToCSV 从数据库读取全部学生数据并同步导出至 CSV 文件，用于数据备份或导出
 func SyncStudentsToCSV() error {
 	// 获取全部学生记录

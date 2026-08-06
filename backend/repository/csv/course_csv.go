@@ -17,62 +17,33 @@ func courseCSVPath() string {
 
 // SaveCourses 将课程列表序列化并写入 CSV 文件，用于数据持久化备份
 func SaveCourses(courses []model.Course) error {
-	// 确保 data 目录存在，若不存在则创建，权限设为 0755
-	err := os.MkdirAll(utils.DataDir(), 0755)
-	if err != nil {
-		return err
-	}
+	return writeCSVAtomic(courseCSVPath(), func(file *os.File) error {
+		writer := csv.NewWriter(file)
 
-	// 创建或覆盖目标 CSV 文件
-	file, err := os.Create(courseCSVPath())
-	if err != nil {
-		return err
-	}
-
-	// 关闭文件失败时仅忽略，避免覆盖主流程错误
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-		}
-	}(file)
-
-	writer := csv.NewWriter(file) // 初始化 CSV 写入器
-	defer writer.Flush()          // 确保函数返回前将缓冲区数据刷新至文件
-
-	// 写入 CSV 表头字段
-	err = writer.Write([]string{
-		"CourseCode",
-		"CourseName",
-		"Term",
-		"Credit",
-		"Teacher",
-	})
-	if err != nil {
-		return err
-	}
-
-	// 逐条写入课程记录
-	for _, course := range courses {
-		record := []string{
-			course.CourseCode,
-			course.CourseName,
-			course.Term,
-			strconv.FormatFloat(
-				course.Credit,
-				'f',
-				1,
-				64,
-			),
-			course.Teacher,
-		}
-
-		err = writer.Write(record)
-		if err != nil {
+		if err := writer.Write([]string{
+			"CourseCode",
+			"CourseName",
+			"Term",
+			"Credit",
+			"Teacher",
+		}); err != nil {
 			return err
 		}
-	}
 
-	return nil
+		for _, course := range courses {
+			if err := writer.Write([]string{
+				course.CourseCode,
+				course.CourseName,
+				course.Term,
+				strconv.FormatFloat(course.Credit, 'f', 1, 64),
+				course.Teacher,
+			}); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	})
 }
 
 // LoadCourses 从 CSV 文件中加载课程列表，若文件不存在则返回空切片

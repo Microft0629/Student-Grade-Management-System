@@ -49,8 +49,9 @@ func CreateCourse(course *model.Course) error {
 		return err
 	}
 
-	// 数据库写入成功后，同步刷新 CSV 文件以保持数据一致性
-	return SyncCoursesToCSV()
+	// 数据库写入成功后，同步刷新 CSV 文件以保持数据一致性；同步失败只告警
+	logSyncError("新增课程", SyncCoursesToCSV())
+	return nil
 }
 
 // GetAllCourses 获取所有课程的业务数据
@@ -91,11 +92,10 @@ func DeleteCourse(id uint) error {
 		return err
 	}
 
-	// 数据库删除成功后，同步刷新课程及成绩 CSV 文件以保持数据一致性
-	if err := SyncCoursesToCSV(); err != nil {
-		return err
-	}
-	return SyncGradesToCSV()
+	// 数据库删除成功后，同步刷新课程及成绩 CSV 文件以保持数据一致性；同步失败只告警
+	logSyncError("删除课程", SyncCoursesToCSV())
+	logSyncError("删除课程成绩", SyncGradesToCSV())
+	return nil
 }
 
 // SearchCourses 按课程名称搜索

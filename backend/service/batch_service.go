@@ -100,10 +100,8 @@ func BatchAdjustScores(courseID uint, minScore float64, maxScore float64, delta 
 	}
 
 	if result.AffectedCount > 0 {
-		err = SyncGradesToCSV()
-		if err != nil {
-			return result, fmt.Errorf("同步CSV失败: %w", err)
-		}
+		// 数据库写入成功后同步 CSV；同步失败只告警，不影响调整结果
+		logSyncError("批量调整", SyncGradesToCSV())
 	}
 
 	return result, nil

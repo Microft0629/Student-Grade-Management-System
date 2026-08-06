@@ -15,6 +15,8 @@ export function DeleteGrade(arg1:number):Promise<void>;
 
 export function GetAllGrades():Promise<Array<model.Grade>>;
 
+export function GetGradesByPage(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number):Promise<model.GradePageResult>;
+
 export function SearchGrades(arg1:string,arg2:string,arg3:string):Promise<Array<model.Grade>>;
 
 export function UpdateGrade(arg1:number,arg2:number):Promise<void>;

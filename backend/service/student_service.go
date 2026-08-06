@@ -50,8 +50,9 @@ func CreateStudent(student *model.Student) error {
 		return err
 	}
 
-	// 数据库写入成功后，同步刷新 CSV 文件以保持数据一致性
-	return SyncStudentsToCSV()
+	// 数据库写入成功后，同步刷新 CSV 文件以保持数据一致性；同步失败只告警
+	logSyncError("新增学生", SyncStudentsToCSV())
+	return nil
 }
 
 // GetAllStudents 获取所有学生的业务数据
@@ -85,11 +86,10 @@ func DeleteStudent(id uint) error {
 		return err
 	}
 
-	// 数据库删除成功后，同步刷新学生及成绩 CSV 文件以保持数据一致性
-	if err := SyncStudentsToCSV(); err != nil {
-		return err
-	}
-	return SyncGradesToCSV()
+	// 数据库删除成功后，同步刷新学生及成绩 CSV 文件以保持数据一致性；同步失败只告警
+	logSyncError("删除学生", SyncStudentsToCSV())
+	logSyncError("删除学生成绩", SyncGradesToCSV())
+	return nil
 }
 
 // SearchStudents 根据关键词搜索学生信息，将请求委托给数据访问层处理

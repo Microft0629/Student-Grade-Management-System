@@ -7,3 +7,10 @@ type StudentPageResult struct {
 	Page     int       // 当前页码
 	PageSize int       // 每页显示的记录数
 }
+
+type GradePageResult struct {
+	List     []Grade // 当前页的成绩数据列表
+	Total    int64   // 满足查询条件的成绩总记录数
+	Page     int     // 当前页码
+	PageSize int     // 每页显示的记录数
+}
