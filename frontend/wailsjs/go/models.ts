@@ -29,6 +29,24 @@ export namespace model {
 	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
 	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class CourseStatistics {
 	    CourseName: string;
@@ -93,42 +111,6 @@ export namespace model {
 		        return new classs(a);
 		    }
 		    return a;
-	    }
-	}
-	export class GradePageResult {
-	    List: Grade[];
-	    Total: number;
-	    Page: number;
-	    PageSize: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new GradePageResult(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.List = this.convertValues(source["List"], Grade);
-	        this.Total = source["Total"];
-	        this.Page = source["Page"];
-	        this.PageSize = source["PageSize"];
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
 		}
 	}
 	export class Student {
@@ -158,6 +140,24 @@ export namespace model {
 	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
 	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Grade {
 	    ID: number;
@@ -189,6 +189,42 @@ export namespace model {
 	        this.Course = this.convertValues(source["Course"], Course);
 	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
 	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class GradePageResult {
+	    List: Grade[];
+	    Total: number;
+	    Page: number;
+	    PageSize: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new GradePageResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.List = this.convertValues(source["List"], Grade);
+	        this.Total = source["Total"];
+	        this.Page = source["Page"];
+	        this.PageSize = source["PageSize"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -365,30 +401,6 @@ export namespace model {
 	        this.MustChangePassword = source["MustChangePassword"];
 	    }
 	}
-	export class User {
-	    ID: number;
-	    Username: string;
-	    Password: string;
-	    Role: string;
-	    // Go type: time
-	    CreatedAt: any;
-	    // Go type: time
-	    UpdatedAt: any;
-	
-	    static createFrom(source: any = {}) {
-	        return new User(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.ID = source["ID"];
-	        this.Username = source["Username"];
-	        this.Password = source["Password"];
-	        this.Role = source["Role"];
-	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
-	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
-	    }
-	}
 
 }
 
@@ -434,3 +446,4 @@ export namespace service {
 	}
 
 }
+
