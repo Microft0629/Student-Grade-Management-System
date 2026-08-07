@@ -128,6 +128,7 @@ wails build -nsis
 
 ## 数据存储
 
+- **数据目录**：数据库、data、备份与导出目录默认位于可执行文件所在目录（开发模式下使用项目目录），可通过环境变量 `SGMS_DATA_DIR` 显式指定数据根目录
 - **主存储**：SQLite 数据库 `database/student.db`
 - **CSV 同步**：学生、课程、成绩数据同步写入 `data/` 目录下的 CSV 文件
 - **成绩文件**：按 `data/grades/{学期}/{课程代码}.csv` 组织

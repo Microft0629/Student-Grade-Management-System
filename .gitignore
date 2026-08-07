@@ -6,7 +6,6 @@ frontend/package.json.md5
 # Node
 node_modules
 frontend/dist
-frontend/package-lock.json
 
 # Go
 *.exe

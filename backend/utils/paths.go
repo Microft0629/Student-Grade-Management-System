@@ -6,16 +6,33 @@ import (
 	"path/filepath"
 )
 
-// AppBaseDir 返回应用数据根目录。
-// 优先使用包含 data 或 database 目录的当前工作目录（兼容 wails dev 与从项目目录启动），
-// 否则使用可执行文件所在目录，避免从其他工作目录启动时把数据写到错误位置。
+// DataDirEnv 环境变量名，显式指定应用数据根目录（测试与部署可用）
+const DataDirEnv = "SGMS_DATA_DIR"
+
+// AppBaseDir 返回应用数据根目录，解析优先级：
+//  1. 环境变量 SGMS_DATA_DIR（显式指定，测试/部署可用）
+//  2. 可执行文件所在目录（若已包含 data/database，部署形态优先）
+//  3. 当前工作目录（若已包含 data/database，兼容 wails dev 从项目目录启动）
+//  4. 可执行文件所在目录 / 当前工作目录兜底
 func AppBaseDir() string {
+	if dir := os.Getenv(DataDirEnv); dir != "" {
+		return filepath.Clean(dir)
+	}
+
+	exeDir := ""
+	if exe, err := os.Executable(); err == nil {
+		exeDir = filepath.Dir(exe)
+		if hasDataMarkers(exeDir) {
+			return exeDir
+		}
+	}
+
 	wd, _ := os.Getwd()
 	if hasDataMarkers(wd) {
 		return wd
 	}
-	if exe, err := os.Executable(); err == nil {
-		return filepath.Dir(exe)
+	if exeDir != "" {
+		return exeDir
 	}
 	return wd
 }

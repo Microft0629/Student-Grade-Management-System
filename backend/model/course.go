@@ -1,12 +1,16 @@
 // Package model course.go 课程数据模型
 package model
 
+import "time"
+
 type Course struct {
-	ID          uint    `gorm:"primaryKey"` // 主键
-	CourseCode  string  `gorm:"unique"`     // 课程代码
-	CourseName  string  // 课程名称
-	Term        string  // 学期
-	Credit      float64 // 学分
-	Teacher     string  // 任课教师
-	CreatorName string  // 创建人用户名
+	ID          uint      `gorm:"primaryKey"` // 主键
+	CourseCode  string    `gorm:"unique"`     // 课程代码
+	CourseName  string    // 课程名称
+	Term        string    `gorm:"index"` // 学期
+	Credit      float64   // 学分
+	Teacher     string    // 任课教师
+	CreatorName string    `gorm:"index"` // 创建人用户名
+	CreatedAt   time.Time // 创建时间
+	UpdatedAt   time.Time // 更新时间
 }

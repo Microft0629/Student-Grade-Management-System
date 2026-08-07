@@ -8,6 +8,10 @@ export namespace model {
 	    Credit: number;
 	    Teacher: string;
 	    CreatorName: string;
+	    // Go type: time
+	    CreatedAt: any;
+	    // Go type: time
+	    UpdatedAt: any;
 	
 	    static createFrom(source: any = {}) {
 	        return new Course(source);
@@ -22,6 +26,8 @@ export namespace model {
 	        this.Credit = source["Credit"];
 	        this.Teacher = source["Teacher"];
 	        this.CreatorName = source["CreatorName"];
+	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
+	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
 	}
 	export class CourseStatistics {
@@ -132,6 +138,10 @@ export namespace model {
 	    Gender: string;
 	    ClassName: string;
 	    Major: string;
+	    // Go type: time
+	    CreatedAt: any;
+	    // Go type: time
+	    UpdatedAt: any;
 	
 	    static createFrom(source: any = {}) {
 	        return new Student(source);
@@ -145,6 +155,8 @@ export namespace model {
 	        this.Gender = source["Gender"];
 	        this.ClassName = source["ClassName"];
 	        this.Major = source["Major"];
+	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
+	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
 	}
 	export class Grade {
@@ -156,6 +168,10 @@ export namespace model {
 	    CreatorName: string;
 	    Student: Student;
 	    Course: Course;
+	    // Go type: time
+	    CreatedAt: any;
+	    // Go type: time
+	    UpdatedAt: any;
 	
 	    static createFrom(source: any = {}) {
 	        return new Grade(source);
@@ -171,6 +187,8 @@ export namespace model {
 	        this.CreatorName = source["CreatorName"];
 	        this.Student = this.convertValues(source["Student"], Student);
 	        this.Course = this.convertValues(source["Course"], Course);
+	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
+	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -204,6 +222,10 @@ export namespace model {
 	    OldScore: number;
 	    NewScore: number;
 	    Detail: string;
+	    // Go type: time
+	    CreatedAt: any;
+	    // Go type: time
+	    UpdatedAt: any;
 	
 	    static createFrom(source: any = {}) {
 	        return new OperationLog(source);
@@ -222,6 +244,8 @@ export namespace model {
 	        this.OldScore = source["OldScore"];
 	        this.NewScore = source["NewScore"];
 	        this.Detail = source["Detail"];
+	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
+	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -346,6 +370,10 @@ export namespace model {
 	    Username: string;
 	    Password: string;
 	    Role: string;
+	    // Go type: time
+	    CreatedAt: any;
+	    // Go type: time
+	    UpdatedAt: any;
 	
 	    static createFrom(source: any = {}) {
 	        return new User(source);
@@ -357,6 +385,8 @@ export namespace model {
 	        this.Username = source["Username"];
 	        this.Password = source["Password"];
 	        this.Role = source["Role"];
+	        this.CreatedAt = this.convertValues(source["CreatedAt"], null);
+	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	    }
 	}
 
