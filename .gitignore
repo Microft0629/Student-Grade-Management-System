@@ -19,10 +19,7 @@ vendor/
 __debug_bin
 
 # IDE
-.idea/*
-!.idea/.gitignore
-!.idea/modules.xml
-!.idea/*.iml
+.idea/
 .vscode/
 *.swp
 *.swo
